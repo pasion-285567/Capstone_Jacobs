@@ -1,9 +1,9 @@
 body {
-    margin: 0;
+    margin: auto;
     font-family: Arial, sans-serif;
     background: whitesmoke;
     color: white;
-    padding: 20px;
+    padding: auto;
 }
 
 .left-sidebar, .right-sidebar {
@@ -41,9 +41,9 @@ body {
     display: block;
     text-align: center;
     margin: 10px auto;
-    font-family: Cooper, sans-serif;
+    color: #BA8E4A;
+    font-family: 'Cooper Black';
     font-size: 18px;
-    font-weight: bold;
 }
 
 .menu {
