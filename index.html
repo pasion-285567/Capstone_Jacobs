@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="styles/default.css">
+</head>
+
+<body>
+    <div class="left-sidebar">
+        <img src="images/logo.jpg" alt="Jacob’s Café & Resto">
+        <span>Jacob’s Café & Resto</span>
+        <div class="menu">
+            <div class="active-indicator"></div>
+            <a href="#" onclick="showContent('home', this)">Home</a>
+            <a href="#" onclick="showContent('about', this)">About</a>
+            <a href="#" onclick="showContent('services', this)">Services</a>
+            <a href="#" onclick="showContent('contact', this)">Contact Us</a>
+        </div>
+    </div>
+
+    <div class="right-sidebar">
+        Blank content muna ito. Dito ilalagay yung parang add to cart siguro then check out.
+    </div>
+    
+
+    <div class="content">
+        <div id="home" class="content-section">
+            <h1>Welcome</h1>
+            <p>Dito ko ilalagay ang today's menu, and others</p>
+        </div>
+        <div id="about" class="content-section hidden">
+            <h1>About Us</h1>
+            <p>Dito ko ilalagay ang tungkol sa Jacob’s Café & Resto</p>
+        </div>
+        <div id="services" class="content-section hidden">
+            <h1>Our Services</h1>
+            <p>Dito ilalagay ang inoofer nilang services siguro</p>
+        </div>
+        <div id="contact" class="content-section hidden">
+            <h1>Contact Us</h1>
+            <p>Dito ko siguro ilalagay ang kanilang contact, kung saan sila pwedeng hagilapin?</p>
+        </div>
+    </div>
+</body>
+
+<script src="scripts/default.js"></script>
+
+</html>
