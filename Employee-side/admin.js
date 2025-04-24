@@ -1,8 +1,8 @@
-document.addEventListener('DOMContentLoaded', function () {
+ document.addEventListener('DOMContentLoaded', function () {
     const form = document.querySelector('form');
 
     form.addEventListener('submit', function (e) {
-        e.preventDefault();
+       e.preventDefault();
 
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value.trim();
@@ -13,8 +13,9 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             alert('Invalid email or password!');
         }
-    });
-});
+    }); 
+
+}); 
 
 function logout() {
     document.querySelector('.dashboard').style.display = 'none';
