@@ -1,0 +1,43 @@
+.menu-placeholder {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.menu-placeholder {
+    position: relative;
+    width: auto;
+    height: auto;
+    background: white;
+    color: black;
+    border-radius: 15px;
+    margin: 20px auto;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: thin;
+    scrollbar-color: #ccc transparent;
+    flex-direction: row;
+}
+
+.menu-item img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.menu-item span {
+    margin-top: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    color: black;
+    display: flex;
+}
