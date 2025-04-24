@@ -1,8 +1,8 @@
-/* Order Status */
+/* Order Status Section */
 .order-status {
     margin-top: 20px;
     padding: 10px;
-    display: none; /* Initially hidden */
+    display: none;
 }
 
 .order-status.hidden {

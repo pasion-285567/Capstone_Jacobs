@@ -78,21 +78,7 @@
     right: 10px;
     font-size: 24px;
     cursor: pointer;
-    z-index: 1; /* Para siguraduhin na nasa ibabaw ng ibang mga elemento */
-}
-
-
-/* Order Status */
-.order-status {
-    margin-top: 20px;
-    padding: 10px;
-    background-color: #f5f5f5;
-    border-radius: 10px;
-    display: none;
-}
-
-.order-status .order-details {
-    font-size: 16px;
+    z-index: 1;
 }
 
 .payment-details input::-webkit-outer-spin-button,
