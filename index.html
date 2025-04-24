@@ -11,9 +11,13 @@
     <link rel="stylesheet" href="styles/responsive-styles/480p.css">
     <link rel="stylesheet" href="styles/menu.css">
     <link rel="stylesheet" href="styles/cart.css">
+    <link rel="stylesheet" href="styles/order.css">
+    <link rel="stylesheet" href="styles/payment.css">
 </head>
 
 <body>
+
+    <!--Left Sidebar, Modules-->
     <div class="left-sidebar">
         <img src="images/logo.png" alt="Jacob’s Café & Resto">
         <span>Jacob’s Café & Resto</span>
@@ -26,20 +30,22 @@
         </div>
     </div>
 
+    <!--Right Sidebar, Cart-->
     <div class="right-sidebar">
         <h3 class="cart-title">Your Cart</h3>
         <div class="cart-items"></div>
-
         <div class="cart-footer">
             <div class="total">Total: P0.00</div>
             <button class="place-order">Place Order</button>
         </div>
-
     </div>
 
+    <!--Main Dashboard-->
     <div class="content">
         <div id="home" class="content-section">
             <h1>Welcome to Jacob’s Café & Resto</h1>
+
+            <!--Categories Section-->
             <span>Categories</span>
             <div class="category-placeholder">
                 <button class="ctgry-btn">
@@ -79,38 +85,77 @@
                     <span>Drinks</span>
                 </button>
             </div>
+
+            <!--Meals Section-->
             <div class="meals">
                 <span>Seller's Best</span>
                 <div class="menu-placeholder">
                     <div class="menu-item">
                         <img src="" alt="Meal">
-                        <span>Meal 1</span>
-                        <price>P10.00</price>
+                        <span>Adobo</span>
+                        <price>P79.00</price>
                         <button class="add-btn">+</button>
                     </div>
                     <div class="menu-item">
                         <img src="" alt="Meal">
-                        <span>Meal 2</span>
-                        <price>P10.00</price>
+                        <span>Valenciana</span>
+                        <price>P75.00</price>
                         <button class="add-btn">+</button>
                     </div>
                     <div class="menu-item">
                         <img src="" alt="Meal">
-                        <span>Meal 3</span>
-                        <price>P10.00</price>
+                        <span>Menudo</span>
+                        <price>P69.00</price>
                         <button class="add-btn">+</button>
                     </div>
                     <div class="menu-item">
                         <img src="" alt="Meal">
-                        <span>Meal 4</span>
-                        <price>P10.00</price>
+                        <span>Afritada</span>
+                        <price>P99.00</price>
+                        <button class="add-btn">+</button>
+                    </div>
+                    <div class="menu-item">
+                        <img src="" alt="Meal">
+                        <span>Caldereta</span>
+                        <price>P199.00</price>
+                        <button class="add-btn">+</button>
+                    </div>
+                    <div class="menu-item">
+                        <img src="" alt="Meal">
+                        <span>Chicken Curry</span>
+                        <price>P149.00</price>
                         <button class="add-btn">+</button>
                     </div>
                 </div>
-                <a href="admin.html"> Admin Login</a><br>
-                <a href="staff.html"> Staff Login</a>
             </div>
+
+            <!-- Overlay for Payment -->
+            <div class="payment-overlay hidden">
+                <div class="payment-popup">
+                    <span class="close-btn">&times;</span>
+                    <h3>Payment</h3>
+                    <div class="payment-details">
+                        <p>Total: <span class="payment-total">P0.00</span></p>
+                        <input type="number" class="payment-input" placeholder="Enter payment amount">
+                        <p>Change: <span class="payment-change">P0.00</span></p>
+                        <button class="checkout-btn">Checkout</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Status Section -->
+            <div class="order-status hidden">
+                <span>Order Status</span>
+                <div class="order-stats">
+                    <div class="order-summary-list"></div>
+                </div>
+            </div>
+
+            <a href="admin.html"> Admin Login</a><br>
+            <a href="staff.html"> Staff Login</a>
         </div>
+
+        <!--Menu, About Content-->
         <div id="about" class="content-section hidden">
             <h1>About Us</h1>
             <p>We Serve the best authentic Cuisine's and beverages that surely satisfy your mouthfeel and appetite
@@ -129,10 +174,14 @@
                 </blockquote>
             </div>
         </div>
+
+        <!--Menu, Services Content-->
         <div id="services" class="content-section hidden">
             <h1>Our Services</h1>
             <p>Dito ilalagay ang inoofer nilang services siguro</p>
         </div>
+
+        <!--Menu, Contact Us Content-->
         <div id="contact" class="content-section hidden">
             <h1>Contact Us</h1>
             <p>Dito ko siguro ilalagay ang kanilang contact, kung saan sila pwedeng hagilapin?</p>
@@ -140,8 +189,10 @@
     </div>
 </body>
 
+<!--Menu, About Content-->
 <script src="scripts/default.js"></script>
 <script src="scripts/cart.js"></script>
+<script src="scripts/payment.js"></script>
 <div id="fb-root"></div>
 <script async defer crossorigin="anonymous"
     src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v22.0"></script>

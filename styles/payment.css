@@ -1,0 +1,106 @@
+/* Payment Overlay */
+.payment-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* Display the overlay */
+.payment-overlay.active {
+    visibility: visible;
+    opacity: 1;
+}
+
+.payment-popup {
+    position: relative; /* I-set ito sa relative para maging reference ang popup para sa mga absolute na posisyon */
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    width: 300px;
+    text-align: center;
+}
+
+
+.payment-popup h3 {
+    margin-bottom: 15px;
+}
+
+.payment-details {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Gagawing centered ang mga elemento sa loob */
+    justify-content: center;
+}
+
+.payment-details input {
+    width: 80%; /* Para hindi mag-extend ang input box hanggang dulo */
+    padding: 10px;
+    margin-top: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    text-align: center; /* Para maging centered ang text */
+    appearance: none; /* Para alisin ang number input arrows */
+    -webkit-appearance: none; /* Para sa Webkit browsers (Chrome, Safari) */
+    -moz-appearance: textfield; /* Para sa Firefox */
+}
+
+
+.payment-details button {
+    background-color: #BA8E4A;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    font-size: 18px;
+    margin-top: 15px;
+    cursor: pointer;
+}
+
+.payment-details button:hover {
+    background-color: #9a7337;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 1; /* Para siguraduhin na nasa ibabaw ng ibang mga elemento */
+}
+
+
+/* Order Status */
+.order-status {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-radius: 10px;
+    display: none;
+}
+
+.order-status .order-details {
+    font-size: 16px;
+}
+
+.payment-details input::-webkit-outer-spin-button,
+.payment-details input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.payment-details input[type=number] {
+    -moz-appearance: textfield;
+}

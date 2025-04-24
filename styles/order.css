@@ -1,0 +1,24 @@
+/* Order Status */
+.order-status {
+    margin-top: 20px;
+    padding: 10px;
+    display: none; /* Initially hidden */
+}
+
+.order-status.hidden {
+    display: none;
+}
+
+.order-status .order-details {
+    font-size: 16px;
+}
+
+.order-stats {
+    background-color: white;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    width: auto;
+    height: auto;
+    margin: 20px auto;
+    border-radius: 15px;
+    padding: 15px;
+}
