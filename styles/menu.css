@@ -41,3 +41,10 @@
     color: black;
     display: flex;
 }
+
+.menu-item:hover {
+    transform: scale(1.1);
+    background-color: #BA8E4A;
+    border-radius: 10px;
+    color:white;
+}
