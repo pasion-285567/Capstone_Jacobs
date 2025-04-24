@@ -8,22 +8,42 @@
     margin: 20px auto;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 15px;
     padding: 15px;
     white-space: nowrap;
     scrollbar-width: thin;
     scrollbar-color: #ccc transparent;
-    flex-direction: column;
+}
+
+/* Add scrollbar styling like categories */
+.menu-placeholder::-webkit-scrollbar {
+    height: 8px;
+}
+
+.menu-placeholder::-webkit-scrollbar-thumb {
+    background: #aaa;
+    border-radius: 10px;
+}
+
+.menu-placeholder::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 .menu-item {
     position: relative;
     display: flex;
-    flex-direction: column;
-    width: 100%;
+    flex-direction: row; /* Changed to row for horizontal layout */
+    width: 95%;
     align-items: center;
+    justify-content: flex-start; /* Align items to start */
     margin-top: 10px;
+    padding: 10px;
+    transition: 0.3s;
+    cursor: pointer;
+    border: none;
+    background: none;
 }
 
 .menu-item img {
@@ -31,19 +51,54 @@
     height: 40px;
     object-fit: cover;
     border-radius: 10px;
+    margin-right: 15px; /* Add space after image */
 }
 
 .menu-item span {
-    margin-top: 5px;
     font-size: 16px;
     font-weight: bold;
     color: black;
-    display: flex;
+    margin-right: auto; /* Push remaining items to the right */
+}
+
+.menu-item price {
+    margin-right: 10px; /* Space between price and + button */
+    font-weight: bold;
+}
+
+.menu-item button {
+    background: none;
+    border: none;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
 }
 
 .menu-item:hover {
-    transform: scale(1.1);
+    transform: scale(1.03);
     background-color: #BA8E4A;
     border-radius: 10px;
-    color:white;
+    color: white;
 }
+
+.menu-item:hover .add-btn{
+    color:#BA8E4A !important;
+    background: white !important;
+}
+
+.add-btn {
+    background:#BA8E4A !important;
+    color: white;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 5px 10px;
+}
+
+.menu-item:hover span,
+.menu-item:hover price,
+.menu-item:hover button {
+    color: white;
+}
+

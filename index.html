@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="styles/sidebar.css">
     <link rel="stylesheet" href="styles/responsive-styles/480p.css">
     <link rel="stylesheet" href="styles/menu.css">
+    <link rel="stylesheet" href="styles/cart.css">
 </head>
 
 <body>
@@ -26,7 +27,14 @@
     </div>
 
     <div class="right-sidebar">
-        Blank content muna ito. Dito ilalagay yung parang add to cart siguro then check out.
+        <h3 class="cart-title">Your Cart</h3>
+        <div class="cart-items"></div>
+
+        <div class="cart-footer">
+            <div class="total">Total: P0.00</div>
+            <button class="place-order">Place Order</button>
+        </div>
+
     </div>
 
     <div class="content">
@@ -74,38 +82,39 @@
             <div class="meals">
                 <span>Seller's Best</span>
                 <div class="menu-placeholder">
-                    <button class="menu-item">
+                    <div class="menu-item">
                         <img src="" alt="Meal">
                         <span>Meal 1</span>
                         <price>P10.00</price>
-                        <button>+</button>
-                    </button>
-                    <button class="menu-item">
+                        <button class="add-btn">+</button>
+                    </div>
+                    <div class="menu-item">
                         <img src="" alt="Meal">
                         <span>Meal 2</span>
                         <price>P10.00</price>
-                        <button>+</button>
-                    </button>
-                    <button class="menu-item">
+                        <button class="add-btn">+</button>
+                    </div>
+                    <div class="menu-item">
                         <img src="" alt="Meal">
                         <span>Meal 3</span>
                         <price>P10.00</price>
-                        <button>+</button>
-                    </button>
-                    <button class="menu-item">
+                        <button class="add-btn">+</button>
+                    </div>
+                    <div class="menu-item">
                         <img src="" alt="Meal">
                         <span>Meal 4</span>
                         <price>P10.00</price>
-                        <button>+</button>
-                    </button>
+                        <button class="add-btn">+</button>
+                    </div>
                 </div>
+                <a href="admin.html"> Admin Login</a><br>
+                <a href="staff.html"> Staff Login</a>
             </div>
-            <a href="admin.html"> Admin Login</a><br>
-            <a href="staff.html"> Staff Login</a>
         </div>
         <div id="about" class="content-section hidden">
             <h1>About Us</h1>
-            <p>We Serve the best authentic Cuisine's and beverages that surely satisfy your mouthfeel and appetite</p>
+            <p>We Serve the best authentic Cuisine's and beverages that surely satisfy your mouthfeel and appetite
+            </p>
             <strong>Location: </strong>1166 Km. 38 Pulong Buhangin Sta. Maria, Santa Maria, Philippines</p>
             <a class="location-btn"
                 href="https://www.google.com/maps/dir//Jacob's+CAFE+%26+RESTO,+Santa+Maria,+Bulakan/@14.8527393,120.8160376,326m/data=!3m1!1e3!4m17!1m7!3m6!1s0x3397a945409f9aef:0xfb488265f11e572c!2sJacob's+CAFE+%26+RESTO!8m2!3d14.8682383!4d121.0001282!16s%2Fg%2F11kk6znk3_!4m8!1m0!1m5!1m1!1s0x3397a945409f9aef:0xfb488265f11e572c!2m2!1d121.0001567!2d14.8682214!3e2?entry=ttu&g_ep=EgoyMDI1MDMxNi4wIKXMDSoASAFQAw%3D%3D"
@@ -132,7 +141,9 @@
 </body>
 
 <script src="scripts/default.js"></script>
+<script src="scripts/cart.js"></script>
 <div id="fb-root"></div>
 <script async defer crossorigin="anonymous"
     src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v22.0"></script>
+
 </html>
