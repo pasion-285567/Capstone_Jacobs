@@ -1,3 +1,4 @@
+/* General layout */
 body {
     font-family: Arial, sans-serif;
     background: #f4f4f4;
@@ -5,8 +6,11 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
+    flex-direction: column;
+    margin: 0;
   }
-
+  
+  /* Login container */
   .login-container {
     background: #fff;
     padding: 30px;
@@ -14,48 +18,49 @@ body {
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     width: 100%;
     max-width: 400px;
+    margin-bottom: 20px;
   }
-
+  
   .login-container h2 {
     text-align: center;
     margin-bottom: 25px;
   }
-
+  
   .form-group {
     margin-bottom: 15px;
   }
-
+  
   .form-group label {
     display: block;
     margin-bottom: 5px;
   }
-
+  
   .form-group input {
     width: 100%;
     padding: 10px;
     border-radius: 5px;
     border: 1px solid #ccc;
   }
-
+  
   .form-group input:focus {
     outline: none;
     border-color: #007BFF;
   }
-
+  
   .forgot-password {
     text-align: right;
     margin-bottom: 20px;
   }
-
+  
   .forgot-password a {
     text-decoration: none;
     color: #007BFF;
   }
-
+  
   .forgot-password a:hover {
     text-decoration: underline;
   }
-
+  
   .login-btn {
     width: 100%;
     padding: 10px;
@@ -66,7 +71,38 @@ body {
     font-size: 16px;
     cursor: pointer;
   }
-
+  
   .login-btn:hover {
     background: #0056b3;
   }
+  
+  /* Dashboard container */
+  .dashboard {
+    display: none;
+    background: #fff;
+    padding: 30px;
+    max-width: 800px;
+    width: 90%;
+    margin: 0 auto;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    text-align: center;
+  }
+  
+  .dashboard h2 {
+    margin-bottom: 15px;
+  }
+  
+  .dashboard button {
+    padding: 10px 20px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .dashboard button:hover {
+    background: #c82333;
+  }
+  

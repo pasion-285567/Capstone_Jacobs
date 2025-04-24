@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login</title>
+    <title>Staff Login</title>
     <link rel="stylesheet" href="Employee-side/login.css">
 </head>
 
@@ -15,12 +15,12 @@
         <form>
             <div class="form-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" placeholder="Enter your email">
+                <input type="email" id="email" placeholder="Enter your email" required>
             </div>
 
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" placeholder="Enter your password">
+                <input type="password" id="password" placeholder="Enter your password" required>
             </div>
 
             <div class="forgot-password">
@@ -31,7 +31,15 @@
         </form>
     </div>
 
-    <script src="admin.js"></script>
+    <div class="dashboard">
+        <h2>Admin Dashboard</h2>
+        <p>Welcome, admin! You are now logged in.</p>
+        <div style="margin-top: 20px;">
+            <button onclick="logout()">Logout</button>
+        </div>
+    </div>
+    
+    <script src="Employee-side/admin.js"></script>
 </body>
 
 </html>
