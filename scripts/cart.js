@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const menuItem = button.closest(".menu-item");
             const name = menuItem.querySelector("span").textContent;
             const priceText = menuItem.querySelector("price").textContent;
-            const price = parseFloat(priceText.replace("₱", ""));
+            const price = parseFloat(priceText.replace("P", ""));
             const quantityInput = menuItem.querySelector(".quantity-input");
             const quantity = quantityInput ? parseInt(quantityInput.value) : 1;
 
@@ -132,7 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function updateTotal() {
         if (!totalDisplay || !paymentTotal) return;
         const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        totalDisplay.textContent = `Total: ₱${total.toFixed(2)}`;
+        totalDisplay.textContent = `Total: P${total.toFixed(2)}`;
         paymentTotal.textContent = `P${total.toFixed(2)}`;
     }
 
@@ -154,10 +154,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (paymentInput) {
         paymentInput.addEventListener("input", () => {
             const paymentAmount = parseFloat(paymentInput.value) || 0;
-            const totalAmount = parseFloat(paymentTotal.textContent.replace("₱", ""));
+            const totalAmount = parseFloat(paymentTotal.textContent.replace("P", ""));
             const change = paymentAmount - totalAmount;
             if (paymentChange) {
-                paymentChange.textContent = `₱${change.toFixed(2)}`;
+                paymentChange.textContent = `P${change.toFixed(2)}`;
             }
         });
     }
@@ -179,9 +179,9 @@ document.addEventListener("DOMContentLoaded", () => {
                             <li>${item.name} x${item.quantity}: P${(item.price * item.quantity).toFixed(2)}</li>
                         `).join("")}
                     </ul>
-                    <p>Total: P${paymentTotal.textContent.replace("₱", "")}</p>
-                    <p>Payment: P${paymentInput.value}</p>
-                    <p>Change: P${paymentChange.textContent.replace("₱", "")}</p>
+                    <p>Total: P${paymentTotal.textContent.replace("P", "")}</p>
+                    <p>Payment:  &#8369;${paymentInput.value}</p>
+                    <p>Change:  &#8369;${paymentChange.textContent.replace("P", "")}</p>
                     <h4>Status: Preparing...</h4>
                 `;
 
