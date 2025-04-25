@@ -76,88 +76,114 @@
         font-size: 11px;
     }
 
-    /* Menu Section */
+        /* Menu Placeholder Fix */
+    /* Menu Placeholder Container */
     .menu-placeholder {
         margin: 10px 0;
-
         max-height: calc(100vh - 400px);
-        overflow-y:hidden !important;
+        overflow-y: auto;       /* Allow vertical scrolling */
+        overflow-x: hidden;     /* Prevent horizontal overflow */
+        padding: 0px !important;           /* Add some padding around all sides */
+        box-sizing: border-box; /* Include padding in width calculation */
+        width: 100%;            /* Full width of parent */
     }
 
-    /* Menu Item Layout */
+    /* Menu Item Layout - Contained within parent */
     .menu-item {
         display: grid;
-        grid-template-columns: 35px 1fr;
-        grid-template-rows: auto auto;
-        padding: 8px;
+        grid-template-columns: auto 1fr auto;     /* 3 columns: image, content, price */
+        grid-template-rows: auto auto;            /* 2 rows: name, controls */
         gap: 5px;
+        padding: 6px;
         width: 100%;
-        margin-bottom: 8px;
-        
+        max-width: 100%;
+        box-sizing: border-box;
+        align-items: center;
+        margin-bottom: 5px;
+        column-gap: 8px !important;                          /* Increase spacing between columns */
     }
 
     .menu-item img {
-        width: 35px;
-        height: 35px;
+        width: 32px;
+        height: 32px;
+        grid-column: 1;
         grid-row: span 2;
-        border-radius: 8px;
+        border-radius: 6px;
+        align-self: center;
+        flex-shrink: 0;
     }
 
     .menu-item span {
-        font-size: 12px;
+        font-size: 15px !important;
         line-height: 1.2;
         grid-column: 2;
+        grid-row: 1;
         white-space: normal;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+        padding-right: 5px;
     }
 
     .menu-item price {
         font-size: 12px;
-        grid-column: 2;
-        grid-row: 2;
-        display: inline-flex;
-        align-items: center;
+        grid-column: 3;
+        grid-row: 1;
+        white-space: nowrap;
+        text-align: right;
+        flex-shrink: 0;
+        min-width: max-content;
+        margin-right: 0px !important;                        /* Push price more to the right edge */
+        justify-self: end !important;                        /* Align to the right */
     }
 
     .quantity-controls {
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-        margin-left: auto;
-        margin-right: 40px;
         grid-column: 2;
         grid-row: 2;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        min-width: 0;
+        padding-left: 0 !important;                          /* Ensure alignment with item name above */
+        margin-left: 0;                           /* Ensure alignment with item name above */
     }
 
     .quantity-controls::before {
         content: "Qty:";
-        font-size: 11px;
+        font-size: 10px;
+        flex-shrink: 0;
     }
 
     .quantity-input {
-        width: 20px;
-        height: 20px;
-        padding: 2px;
-        font-size: 11px;
+        width: 20px !important;
+        height: 20px !important;
+        padding: 1px;
+        font-size: 10px;
+        font-weight: bold;
         text-align: center;
+        flex-shrink: 0;
     }
 
     .minus, .plus {
-        width: 20px;
-        height: 20px;
-        font-size: 11px;
+        width: 18px;
+        height: 18px;
+        font-size: 10px;
         padding: 0;
+        flex-shrink: 0;
     }
 
     .add-btn {
-        font-size: 14px;
+        font-size: 10px;
         padding: 2px 6px;
-        margin-left: 235px;
-        grid-column: 2;
+        grid-column: 3;
         grid-row: 2;
         width: fit-content;
-        justify-self: end;
-        margin-right: auto;
+        justify-self: end;                        /* Push to right edge */
+        margin-right: 0;                          /* Remove any right margin */
+        flex-shrink: 0;
+        white-space: nowrap;
     }
+
 
     /* Right Sidebar to Bottom */
     .right-sidebar {

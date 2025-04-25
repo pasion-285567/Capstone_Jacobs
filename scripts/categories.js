@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <input type="number" class="quantity-input" value="1" min="1">
                         <button class="plus">+</button>
                     </div>
-                    <price>P${item.price.toFixed(2)}</price>
+                    <price>₱${item.price.toFixed(2)}</price>
                     <button class="add-btn">+</button>
                 </div>
             `).join('');
@@ -221,7 +221,7 @@ function attachCartHandlers() {
         addBtn.addEventListener("click", () => {
             const name = item.querySelector("span").textContent;
             const priceText = item.querySelector("price").textContent;
-            const price = parseFloat(priceText.replace("P", ""));
+            const price = parseFloat(priceText.replace("₱", ""));
             const quantity = parseInt(quantityInput.value);
 
             const addToCartEvent = new CustomEvent('addToCart', {
