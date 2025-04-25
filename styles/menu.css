@@ -14,12 +14,11 @@
     padding: 15px;
     white-space: nowrap;
     overflow-y: auto;
-    max-height:320px;
+    max-height: 320px;
     scrollbar-width: thin;
     scrollbar-color: #ccc transparent;
 }
 
-/* Add scrollbar styling like categories */
 .menu-placeholder::-webkit-scrollbar {
     height: 8px;
 }
@@ -35,11 +34,11 @@
 
 .menu-item {
     position: relative;
-    display: flex;
-    flex-direction: row; /* Changed to row for horizontal layout */
+    display: grid;
+    grid-template-columns: 40px 1fr auto auto auto;
     width: 95%;
     align-items: center;
-    justify-content: flex-start; /* Align items to start */
+    gap: 15px;
     margin-top: 10px;
     padding: 10px;
     transition: 0.3s;
@@ -53,27 +52,58 @@
     height: 40px;
     object-fit: cover;
     border-radius: 10px;
-    margin-right: 15px; /* Add space after image */
 }
 
 .menu-item span {
     font-size: 16px;
     font-weight: bold;
     color: black;
-    margin-right: auto; /* Push remaining items to the right */
+}
+
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 15px;
+}
+
+.quantity-controls::before {
+    content: "Qty:";
+    font-size: 14px;
+    color: inherit;
+}
+
+.quantity-input {
+    width: 40px;
+    text-align: center;
+    padding: 4px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.minus, .plus {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
 .menu-item price {
-    margin-right: 10px; /* Space between price and + button */
     font-weight: bold;
+    margin-right: 10px;
 }
 
-.menu-item button {
-    background: none;
-    border: none;
+.add-btn {
+    background: #BA8E4A !important;
+    color: white;
+    border-radius: 10px;
     font-size: 18px;
     font-weight: bold;
     cursor: pointer;
+    padding: 5px 10px;
+    border: none;
 }
 
 .menu-item:hover {
@@ -83,24 +113,32 @@
     color: white;
 }
 
-.menu-item:hover .add-btn{
-    color:#BA8E4A !important;
+.menu-item:hover .add-btn {
+    color: #BA8E4A !important;
     background: white !important;
-}
-
-.add-btn {
-    background:#BA8E4A !important;
-    color: white;
-    border-radius: 10px;
-    font-size: 18px;
-    font-weight: bold;
-    cursor: pointer;
-    padding: 5px 10px;
 }
 
 .menu-item:hover span,
 .menu-item:hover price,
-.menu-item:hover button {
+.menu-item:hover button,
+.menu-item:hover .quantity-controls::before {
     color: white;
 }
 
+.menu-item:hover .quantity-input,
+.menu-item:hover .minus,
+.menu-item:hover .plus {
+    border-color: white;
+    background: transparent;
+    color: white;
+}
+
+.quantity-input::-webkit-inner-spin-button,
+.quantity-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.quantity-input {
+    -moz-appearance: textfield;
+}

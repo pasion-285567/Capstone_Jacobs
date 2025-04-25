@@ -1,90 +1,67 @@
-.left-sidebar, .right-sidebar {
-    position: fixed;
-    top: 20px;
-    width: 230px;
-    height: 90vh;
+.category-placeholder {
+    position: relative;
+    width: auto;
+    height: auto;
     background: white;
     color: black;
     border-radius: 15px;
-    padding-top: 20px;
+    margin: 20px auto;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     display: flex;
-    flex-direction: column;
     align-items: center;
-    scrollbar-width: thin !important;
-    scrollbar-color: #aaa transparent;
+    gap: 15px;
+    padding: 15px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: thin;
+    scrollbar-color: #ccc transparent;
 }
 
-.left-sidebar {
-    left: 20px;
-    padding:10px;
+.category-placeholder::-webkit-scrollbar {
+    height: 8px;
 }
 
-.right-sidebar {
-    right: 20px;
-    padding:10px;
-}
-
-/* Scrollbar styles for WebKit browsers */
-.right-sidebar::-webkit-scrollbar {
-    width: 8px !important;
-}
-
-.right-sidebar::-webkit-scrollbar-thumb {
+.category-placeholder::-webkit-scrollbar-thumb {
     background: #aaa;
     border-radius: 10px;
 }
 
-.right-sidebar::-webkit-scrollbar-track {
+.category-placeholder::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.left-sidebar img {
-    width: 50%;
-    display: block;
-    margin: 0 auto;
-}
-
-.left-sidebar span {
-    display: block;
-    text-align: center;
-    margin: 10px auto;
-    color: #BA8E4A;
-    font-family: 'Cooper Black';
-    font-size: 18px;
-}
-
-.menu {
-    position: relative;
-    display: flex;
+.ctgry-btn {
+    background: none;
+    border: none;
+    display: inline-flex;
     flex-direction: column;
-    width: 100%;
     align-items: center;
-    margin-top: 10px;
+    justify-content: center;
+    cursor: pointer;
+    padding: 10px;
+    transition: 0.3s;
+    flex: 0 0 auto;
+    width: 100px;
 }
 
-.menu a {
-    display: block;
-    padding: 15px;
-    color: black;
-    text-decoration: none;
+.ctgry-btn img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.ctgry-btn span {
+    margin-top: 5px;
     font-size: 16px;
     font-weight: bold;
-    width: 80%;
-    text-align: center;
-    position: relative;
-    z-index: 2;
-    transition: 0.3s;
-    border-radius: 10px;
+    color: black;
+    display: flex;
 }
 
-.active-indicator {
-    position: absolute;
-    width: 80%;
-    height: 40px;
-    background: #BA8E4A;
+.ctgry-btn:hover {
+    transform: scale(1.1);
+    background-color: #BA8E4A;
     border-radius: 10px;
-    transition: top 0.3s ease-in-out, height 0.2s ease-in-out;
-    left: 10%;
-    z-index: 1;
+    color:white;
 }
