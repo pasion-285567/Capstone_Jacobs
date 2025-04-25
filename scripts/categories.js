@@ -1,19 +1,19 @@
 const categories = [
-    { name: 'All Meals', image: 'images/categories/all-meals.jpg' },
+    { name: 'All Meals', image: 'images/categories/meal.webp' },
     { name: 'Meal w/ Rice', image: 'images/categories/meals.jpg' },
-    { name: 'Sizzling', image: '' },
-    { name: 'Breaded Fillet', image: '' },
+    { name: 'Sizzling', image: 'images/categories/meal.webp' },
+    { name: 'Breaded Fillet', image: 'images/categories/meal.webp' },
     { name: 'Silog', image: 'images/categories/silog.jpg' },
     { name: 'Ala Carte', image: 'images/categories/alacarte.jpg' },
-    { name: 'Sinigang', image: '' },
-    { name: 'Nilaga', image: '' },
+    { name: 'Sinigang', image: 'images/categories/meal.webp' },
+    { name: 'Nilaga', image: 'images/categories/meal.webp' },
     { name: 'Veggies', image: 'images/categories/veggies.jpg' },
     { name: 'Soup', image: 'images/categories/soup.jpg' },
     { name: 'For Sharing', image: 'images/categories/forsharing.jpg' },
     { name: 'Pasta', image: 'images/categories/pasta.jpg' },
     { name: 'Appetizers', image: 'images/categories/appetizer.jpg' },
     { name: 'Drinks', image: 'images/categories/drinks.jpg' },
-    { name: 'Extra', image: '' }
+    { name: 'Extra', image: 'images/categories/meal.webp' }
 ];
 
 const menuCategories = {
