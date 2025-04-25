@@ -15,6 +15,7 @@
     white-space: nowrap;
     overflow-y: auto;
     max-height: 320px;
+    min-height: 320px;
     scrollbar-width: thin;
     scrollbar-color: #ccc transparent;
 }
