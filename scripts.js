@@ -18,7 +18,6 @@ import {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Global variables
 let cart = [];
 let activeOrders = [];
 let tableNumber = null;
