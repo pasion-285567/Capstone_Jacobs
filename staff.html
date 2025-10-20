@@ -1,45 +1,118 @@
+<!--Ito naman yung staff side para malaman nila ano ano yung mga order bawat customer-->
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Staff Login</title>
-    <link rel="stylesheet" href="Employee-side/login.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jacob's Staff</title>
+    <link rel="stylesheet" href="staff.css">
 </head>
 
 <body>
-
-    <div class="login-container">
-        <h2>Staff Login</h2>
-        <form>
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" placeholder="Enter your email" required>
+    <!-- Login Container -->
+    <div class="login-container" id="loginContainer">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>Staff Login</h1>
+                <p>Jacob's Café & Resto</p>
             </div>
-
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" placeholder="Enter your password" required>
-            </div>
-
-            <div class="forgot-password">
-                <a href="#">Forgot Password?</a>
-            </div>
-
-            <button type="submit" class="login-btn">Login</button>
-        </form>
-    </div>
-
-    <div class="dashboard">
-        <h2>Staff Dashboard</h2>
-        <p>Welcome, admin! You are now logged in.</p>
-        <div style="margin-top: 20px;">
-            <button onclick="logout()">Logout</button>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="staffId">Staff ID</label>
+                    <input type="text" id="staffId" placeholder="Enter your staff ID" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="login-btn">Login to Kitchen</button>
+                <div class="error-message" id="errorMessage"></div>
+            </form>
         </div>
     </div>
-    
-    <script src="Employee-side/staff.js"></script>
+
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-title">
+                <h1>Jacob's Staff</h1>
+            </div>
+            <div class="header-actions">
+                <!--   <button class="sound-toggle enabled" id="soundToggle">
+                    Sound On
+                </button>-->
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="dashboard-content">
+            <!-- Orders Management Section -->
+            <div class="orders-section">
+                <div class="section-header">
+                    <h2 class="section-title">Active Orders</h2>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="status-filter">
+                    <button class="filter-btn active" data-status="all">All Orders</button>
+                    <button class="filter-btn" data-status="pending">Pending</button>
+                    <button class="filter-btn" data-status="preparing">Preparing</button>
+                    <button class="filter-btn" data-status="ready">Ready</button>
+                </div>
+
+                <!-- Orders Container -->
+                <div class="orders-container" id="ordersContainer">
+                    <div class="empty-state">
+                        <div class="empty-icon">📝</div>
+                        <div class="empty-message">No orders at the moment</div>
+                        <div class="empty-description">New orders will appear here automatically</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats and Kitchen Display Section -->
+            <div class="stats-section">
+                <!-- Order Statistics -->
+                <div class="stats-card">
+                    <h3 style="margin-bottom: 20px; color: #333;">Order Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="totalOrdersToday">0</div>
+                            <div class="stat-label">Total Today</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="pendingCount">0</div>
+                            <div class="stat-label">Pending</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="preparingCount">0</div>
+                            <div class="stat-label">Preparing</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="readyCount">0</div>
+                            <div class="stat-label">Ready</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kitchen Preparation Queue -->
+                <div class="kitchen-display">
+                    <h3 style="margin-bottom: 20px; color: #333;">Preparation Queue</h3>
+                    <div class="prep-queue" id="prepQueue">
+                        <div class="empty-state">
+                            <div class="empty-icon">👨‍🍳</div>
+                            <div class="empty-message">No pending orders!</div>
+                            <div class="empty-description">All orders are up to date</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="staff.js"></script>
 </body>
 
 </html>

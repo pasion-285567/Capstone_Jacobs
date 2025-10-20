@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu to Inventory Migration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border: 2px solid #17a2b8;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px 0;
+            transition: all 0.3s;
+        }
+
+        .btn-migrate {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-migrate:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40,167,69,0.3);
+        }
+
+        .btn-migrate:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #log {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .log-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .log-success {
+            color: #28a745;
+        }
+
+        .log-error {
+            color: #dc3545;
+        }
+
+        .log-info {
+            color: #17a2b8;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Menu to Inventory Migration</h1>
+        
+        <div class="warning">
+            <strong>Warning:</strong> This will move all documents from 'menu' to 'inventory' collection with stock = 10.
+        </div>
+
+        <div class="info">
+            <strong>Inventory fields that will be created:</strong>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li><strong>name</strong> - Item name</li>
+                <li><strong>category</strong> - Category ID</li>
+                <li><strong>price</strong> - Price in pesos</li>
+                <li><strong>image</strong> - Image data</li>
+                <li><strong>stock</strong> - Set to 10</li>
+                <li><strong>status</strong> - available/unavailable</li>
+                <li><strong>description</strong> - Item description</li>
+                <li><strong>createdAt</strong> - Creation timestamp</li>
+                <li><strong>updatedAt</strong> - Update timestamp</li>
+            </ul>
+        </div>
+
+        <button id="migrateBtn" class="btn-migrate">Start Migration</button>
+
+        <div class="progress-bar" id="progressBar" style="display: none;">
+            <div class="progress-fill" id="progressFill">0%</div>
+        </div>
+
+        <div id="log"></div>
+    </div>
+
+    <script type="module">
+        import { firebaseConfig } from './firebaseConfig.js';
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js';
+        import {
+            getFirestore,
+            collection,
+            getDocs,
+            addDoc,
+            deleteDoc,
+            doc,
+            Timestamp
+        } from 'https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const logDiv = document.getElementById('log');
+        const migrateBtn = document.getElementById('migrateBtn');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+
+        function log(message, type = 'info') {
+            const logItem = document.createElement('div');
+            logItem.className = `log-item log-${type}`;
+            logItem.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(logItem);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateProgress(current, total) {
+            const percentage = Math.round((current / total) * 100);
+            progressFill.style.width = percentage + '%';
+            progressFill.textContent = percentage + '%';
+        }
+
+        async function migrateMenuToInventory() {
+            try {
+                migrateBtn.disabled = true;
+                progressBar.style.display = 'block';
+                log('Starting migration...', 'info');
+
+                // Get all documents from menu collection
+                const menuSnapshot = await getDocs(collection(db, 'menu'));
+                const totalItems = menuSnapshot.size;
+
+                if (totalItems === 0) {
+                    log('No items found in menu collection.', 'info');
+                    migrateBtn.disabled = false;
+                    return;
+                }
+
+                log(`Found ${totalItems} items in menu collection`, 'info');
+                
+                // Console.log all menu items
+                console.log('=== MENU COLLECTION CONTENTS ===');
+                menuSnapshot.forEach((doc, index) => {
+                    console.log(`\n--- Item ${index + 1} (ID: ${doc.id}) ---`);
+                    console.log(doc.data());
+                });
+                console.log('\n=== END OF MENU COLLECTION ===\n');
+                
+                log('Check browser console for full menu data', 'info');
+
+                let processed = 0;
+                let succeeded = 0;
+                let failed = 0;
+
+                for (const menuDoc of menuSnapshot.docs) {
+                    try {
+                        const menuData = menuDoc.data();
+                        
+                        // Create inventory data with EXACT fields needed by admin.js
+                        const inventoryData = {
+                            name: menuData.name || 'Unnamed Item',
+                            category: menuData.category || 'all-meals',
+                            price: menuData.price || 0,
+                            image: menuData.image || null,
+                            stock: 10,
+                            status: menuData.status || 'available',
+                            description: menuData.description || null,
+                            createdAt: menuData.createdAt || Timestamp.now(),
+                            updatedAt: Timestamp.now()
+                        };
+
+                        // Add to inventory collection
+                        const inventoryRef = await addDoc(collection(db, 'inventory'), inventoryData);
+                        log(`Migrated: ${inventoryData.name} (Stock: 10)`, 'success');
+
+                        // Delete from menu collection
+                        await deleteDoc(doc(db, 'menu', menuDoc.id));
+                        log(`Deleted from menu: ${inventoryData.name}`, 'success');
+
+                        succeeded++;
+                    } catch (error) {
+                        log(`Error migrating ${menuDoc.id}: ${error.message}`, 'error');
+                        failed++;
+                    }
+
+                    processed++;
+                    updateProgress(processed, totalItems);
+                }
+
+                log('', 'info');
+                log('=== Migration Complete ===', 'info');
+                log(`Total: ${totalItems}`, 'info');
+                log(`Succeeded: ${succeeded}`, 'success');
+                log(`Failed: ${failed}`, failed > 0 ? 'error' : 'info');
+
+                if (succeeded > 0) {
+                    log('All items migrated to inventory with stock = 10', 'success');
+                    log('Menu collection is now empty', 'info');
+                    log('Next: Use admin panel to add items to menu', 'info');
+                }
+
+            } catch (error) {
+                log(`Fatal error: ${error.message}`, 'error');
+                console.error('Migration error:', error);
+            } finally {
+                migrateBtn.disabled = false;
+            }
+        }
+
+        async function loadMenuData() {
+            try {
+                log('Loading menu collection data...', 'info');
+                const menuSnapshot = await getDocs(collection(db, 'menu'));
+                
+                console.log('=== MENU COLLECTION CONTENTS ===');
+                console.log(`Total items: ${menuSnapshot.size}`);
+                console.log('');
+                
+                menuSnapshot.forEach((doc, index) => {
+                    console.log(`--- Item ${index + 1} (ID: ${doc.id}) ---`);
+                    console.log(doc.data());
+                    console.log('');
+                });
+                
+                console.log('=== END OF MENU COLLECTION ===');
+                
+                log(`Loaded ${menuSnapshot.size} items. Check console for details.`, 'success');
+            } catch (error) {
+                log(`Error loading menu data: ${error.message}`, 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        migrateBtn.addEventListener('click', () => {
+            if (confirm('Are you sure? This will move all menu items to inventory and delete them from menu collection!')) {
+                migrateMenuToInventory();
+            }
+        });
+
+        // Load menu data on page load
+        log('Ready to migrate. Loading menu data...', 'info');
+        loadMenuData();
+    </script>
+</body>
+</html>

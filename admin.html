@@ -3,59 +3,278 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Admin Login</title>
-    <link rel="stylesheet" href="Employee-side/login.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jacob's Admin</title>
+    <link rel="stylesheet" href="admin.css">
 </head>
 
 <body>
-
-   <div class="login-container">
-        <h2>Admin Login</h2>
-        <form>
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" placeholder="Enter your email" required>
+    <!-- Login Container -->
+    <div class="login-container" id="loginContainer">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>Admin Login</h1>
+                <p>Jacob's Café & Resto Management System</p>
             </div>
-
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" placeholder="Enter your password" required>
-            </div>
-
-            <div class="forgot-password">
-                <a href="#">Forgot Password?</a>
-            </div>
-
-            <button type="submit" class="login-btn">Login</button>
-        </form>
-    </div>
-
-    <div class="dashboard">
-        <h2>Admin Dashboard</h2>
-        <p>Welcome, admin! You are now logged in.</p>
-
-        <button class="admn-btn">
-            <span>Manage Menu Items</span>
-        </button>
-        <button class="admn-btn">
-            <span>Add/Update Staff Accounts</span>
-        </button>
-        <button class="admn-btn">
-            <span>View Feedback Entries</span>
-        </button>
-        <button class="admn-btn">
-            <span>View Sales Report</span>
-        </button>
-        <button class="admn-btn">
-            <span>Manage Inventory</span>
-        </button>
-        <div style="margin-top: 20px;">
-            <button onclick="logout()">Logout</button>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="login-btn">Login to Dashboard</button>
+                <div class="error-message" id="errorMessage"></div>
+            </form>
         </div>
     </div>
 
-   <script src="Employee-side/admin.js"></script>
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-title">
+                <h1>Jacob's Admin</h1>
+            </div>
+            <div class="header-actions">
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="dashboard-content">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <ul class="sidebar-menu">
+                    <li><a href="#" class="menu-link active" data-section="overview">Overview</a></li>
+                    <li><a href="#" class="menu-link" data-section="inventory">Inventory</a></li>
+                    <li><a href="#" class="menu-link" data-section="menu-items">Menu Items</a></li>
+                    <li><a href="#" class="menu-link" data-section="categories">Categories</a></li>
+                    <li><a href="#" class="menu-link" data-section="reports">Reports</a></li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Overview Section -->
+                <div class="content-section active" id="overview">
+                    <div class="section-header">
+                        <h2 class="section-title">Dashboard Overview</h2>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalMenuItems">0</div>
+                            <div class="stat-label">Menu Items</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalOrders">0</div>
+                            <div class="stat-label">Total Orders</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="pendingOrders">0</div>
+                            <div class="stat-label">Pending Orders</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="todayRevenue">₱0</div>
+                            <div class="stat-label">Today's Revenue</div>
+                        </div>
+                    </div>
+                    <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                        <h3 style="margin-bottom: 20px; color: #333; border-bottom: 2px solid #BA8E4A; padding-bottom: 10px;">
+                            Recent Activity</h3>
+                        <div class="activity-list" id="recentActivity">
+                            <div class="loading" style="margin: 20px auto; display: block;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inventory Section -->
+                <div class="content-section" id="inventory">
+                    <div class="section-header">
+                        <h2 class="section-title">Inventory Management</h2>
+                        <button class="btn-primary" onclick="openInventoryModal()">+ Add Inventory Item</button>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Image</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Stock</th>
+                                <th>Price</th>
+                                <th>Menu Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 40px;">
+                                    <div class="loading"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Menu Items Section -->
+                <div class="content-section" id="menu-items">
+                    <div class="section-header">
+                        <h2 class="section-title">Menu Items Management</h2>
+                        <p style="color: #666; font-size: 0.9rem; margin-top: 5px;">
+                            Menu items are managed through Inventory. Enable "Show in Menu" for items to appear here.
+                        </p>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Image</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="menuTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 40px;">
+                                    <div class="loading"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Categories Section -->
+                <div class="content-section" id="categories">
+                    <div class="section-header">
+                        <h2 class="section-title">Categories Management</h2>
+                        <button class="btn-primary" onclick="openCategoryModal()">+ Add Category</button>
+                    </div>
+                    <div class="categories-grid" id="categoriesGrid">
+                        <div class="loading" style="margin: 40px auto; display: block;"></div>
+                    </div>
+                </div>
+
+                <!-- Reports Section -->
+                <div class="content-section" id="reports">
+                    <div class="section-header">
+                        <h2 class="section-title">Reports & Analytics</h2>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card" style="background: linear-gradient(135deg, #17a2b8, #20c997);">
+                            <div class="stat-number" id="weeklySales">₱0</div>
+                            <div class="stat-label">Weekly Sales</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #fd7e14, #ffc107);">
+                            <div class="stat-number" id="monthlySales">₱0</div>
+                            <div class="stat-label">Monthly Sales</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #6f42c1, #e83e8c);">
+                            <div class="stat-number" id="popularItem">-</div>
+                            <div class="stat-label">Most Popular Item</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div class="modal" id="categoryModal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeCategoryModal()">×</span>
+            <h2 id="categoryModalTitle">Add New Category</h2>
+            <form id="categoryForm">
+                <div class="form-group">
+                    <label for="categoryName">Category Name *</label>
+                    <input type="text" id="categoryName" placeholder="Enter category name" required>
+                </div>
+                <div class="form-group">
+                    <label for="categoryId">Category ID *</label>
+                    <input type="text" id="categoryId" placeholder="Enter category ID (e.g., 'pasta')" required>
+                </div>
+                <div class="form-group">
+                    <label for="categoryImage">Category Image URL</label>
+                    <input type="url" id="categoryImage" placeholder="Enter image URL">
+                </div>
+                <div class="form-group">
+                    <label for="categoryDescription">Description</label>
+                    <textarea id="categoryDescription" placeholder="Enter category description"></textarea>
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Save Category</button>
+                    <button type="button" class="btn-primary" onclick="closeCategoryModal()"
+                        style="background: #6c757d; flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Inventory Modal -->
+    <div class="modal" id="inventoryModal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeInventoryModal()">×</span>
+            <h2 id="inventoryModalTitle">Add Inventory Item</h2>
+            <form id="inventoryForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="inventoryName">Item Name *</label>
+                    <input type="text" id="inventoryName" placeholder="Enter item name" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="inventoryCategory">Category *</label>
+                        <select id="inventoryCategory" required>
+                            <option value="">Select category</option>
+                            <option value="meal-w-rice">Meal w/ Rice</option>
+                            <option value="sizzling">Sizzling</option>
+                            <option value="breaded-fillet">Breaded Fillet</option>
+                            <option value="silog">Silog</option>
+                            <option value="ala-carte">Ala Carte</option>
+                            <option value="sinigang">Sinigang</option>
+                            <option value="nilaga">Nilaga</option>
+                            <option value="veggies">Veggies</option>
+                            <option value="soup">Soup</option>
+                            <option value="for-sharing">For Sharing</option>
+                            <option value="pasta">Pasta</option>
+                            <option value="appetizers">Appetizers</option>
+                            <option value="drinks">Drinks</option>
+                            <option value="extra">Extra</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="inventoryPrice">Price (₱) *</label>
+                        <input type="number" id="inventoryPrice" placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="inventoryStock">Initial Stock *</label>
+                    <input type="number" id="inventoryStock" placeholder="0" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="inventoryImageFile">Image *</label>
+                    <input type="file" id="inventoryImageFile" accept="image/*" required>
+                    <img id="inventoryImagePreview" src="" alt=""
+                        style="display:none;max-width:200px;margin-top:10px;border-radius:8px;">
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="inventoryShowInMenu">
+                        <span>Show in Customer Menu</span>
+                    </label>
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Save Item</button>
+                    <button type="button" class="btn-primary" onclick="closeInventoryModal()"
+                        style="background: #6c757d; flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase Configuration and JavaScript -->
+    <script type="module" src="admin.js"></script>
 </body>
 
 </html>
