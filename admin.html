@@ -51,6 +51,8 @@
                     <li><a href="#" class="menu-link" data-section="inventory">Inventory</a></li>
                     <li><a href="#" class="menu-link" data-section="menu-items">Menu Items</a></li>
                     <li><a href="#" class="menu-link" data-section="categories">Categories</a></li>
+                    <li><a href="#" class="menu-link" data-section="tables">Tables</a></li>
+                    <li><a href="#" class="menu-link" data-section="feedbacks">Customer Feedbacks</a></li>
                     <li><a href="#" class="menu-link" data-section="reports">Reports</a></li>
                 </ul>
             </div>
@@ -80,8 +82,10 @@
                             <div class="stat-label">Today's Revenue</div>
                         </div>
                     </div>
-                    <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                        <h3 style="margin-bottom: 20px; color: #333; border-bottom: 2px solid #BA8E4A; padding-bottom: 10px;">
+                    <div
+                        style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                        <h3
+                            style="margin-bottom: 20px; color: #333; border-bottom: 2px solid #BA8E4A; padding-bottom: 10px;">
                             Recent Activity</h3>
                         <div class="activity-list" id="recentActivity">
                             <div class="loading" style="margin: 20px auto; display: block;"></div>
@@ -177,10 +181,37 @@
                         </div>
                     </div>
                 </div>
+                <!-- Tables Section -->
+                <div class="content-section" id="tables">
+                    <div class="section-header">
+                        <h2 class="section-title">Table Management</h2>
+                        <button class="btn-primary" onclick="openTableModal()">+ Add Table</button>
+                    </div>
+                    <div class="tables-grid" id="tablesGrid">
+                        <div class="loading" style="margin: 40px auto; display: block;"></div>
+                    </div>
+                </div>
+
+                <!-- Customer Feedbacks Section -->
+                <div class="content-section" id="feedbacks">
+                    <div class="section-header">
+                        <h2 class="section-title">Customer Feedbacks</h2>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span style="font-size: 0.9rem; color: #666;">Total: <strong
+                                    id="totalFeedbacks">0</strong></span>
+                            <span style="font-size: 0.9rem; color: #666;">Avg Rating: <strong
+                                    id="avgRating">0.0</strong> ⭐</span>
+                        </div>
+                    </div>
+                    <div class="feedbacks-container" id="feedbacksContainer">
+                        <div class="loading" style="margin: 40px auto; display: block;"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Category Modal -->
     <!-- Category Modal -->
     <div class="modal" id="categoryModal">
         <div class="modal-content">
@@ -190,18 +221,9 @@
                 <div class="form-group">
                     <label for="categoryName">Category Name *</label>
                     <input type="text" id="categoryName" placeholder="Enter category name" required>
-                </div>
-                <div class="form-group">
-                    <label for="categoryId">Category ID *</label>
-                    <input type="text" id="categoryId" placeholder="Enter category ID (e.g., 'pasta')" required>
-                </div>
-                <div class="form-group">
-                    <label for="categoryImage">Category Image URL</label>
-                    <input type="url" id="categoryImage" placeholder="Enter image URL">
-                </div>
-                <div class="form-group">
-                    <label for="categoryDescription">Description</label>
-                    <textarea id="categoryDescription" placeholder="Enter category description"></textarea>
+                    <small style="color: #666; font-size: 0.85rem; margin-top: 5px; display: block;">
+                        Category ID will be auto-generated
+                    </small>
                 </div>
                 <div style="margin-top: 20px; display: flex; gap: 10px;">
                     <button type="submit" class="btn-primary" style="flex: 1;">Save Category</button>
@@ -273,8 +295,49 @@
         </div>
     </div>
 
+    <!-- Table Modal -->
+    <div class="modal" id="tableModal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeTableModal()">×</span>
+            <h2 id="tableModalTitle">Add New Table</h2>
+            <form id="tableForm">
+                <div class="form-group">
+                    <label for="tableNumber">Table Number *</label>
+                    <input type="number" id="tableNumber" placeholder="Enter table number" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="tableStatus">
+                        <option value="available">Available</option>
+                        <option value="occupied">Occupied</option>
+                        <option value="reserved">Reserved</option>
+                    </select>
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Save Table</button>
+                    <button type="button" class="btn-primary" onclick="closeTableModal()"
+                        style="background: #6c757d; flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div class="modal" id="qrModal">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <span class="modal-close" onclick="closeQRModal()">×</span>
+            <h2 id="qrModalTitle">Table QR Code</h2>
+            <div style="padding: 20px;">
+                <div id="qrCodeContainer" style="display: flex; justify-content: center; margin: 20px 0;"></div>
+                <p style="color: #666; margin: 15px 0; word-break: break-all;" id="qrUrl"></p>
+                <button class="btn-primary" onclick="downloadQRCode()">Download QR Code</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase Configuration and JavaScript -->
     <script type="module" src="admin.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </body>
 
 </html>

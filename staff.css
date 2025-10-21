@@ -307,8 +307,9 @@ body {
 }
 
 .order-item {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
     align-items: center;
     padding: 8px 0;
     border-bottom: 1px solid #eee;
@@ -330,12 +331,15 @@ body {
     border-radius: 12px;
     font-size: 0.8rem;
     font-weight: 600;
-    margin: 0 10px;
+    text-align: center;
+    min-width: 40px;
 }
 
 .item-price {
     font-weight: 600;
     color: #BA8E4A;
+    text-align: right;
+    min-width: 80px;
 }
 
 .order-total {
@@ -711,4 +715,42 @@ body {
 .btn-mark-paid:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+}
+
+.filter-btn {
+    padding: 8px 16px;
+    border: 2px solid #e1e5e9;
+    background: white;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-count {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-width: 24px;
+    text-align: center;
+}
+
+.filter-btn.active .filter-count {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.btn-cancel {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+}
+
+.btn-cancel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
 }

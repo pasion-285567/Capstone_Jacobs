@@ -1,14 +1,14 @@
 import { firebaseConfig } from './firebaseConfig.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js';
-import { 
-    getFirestore, 
-    collection, 
-    getDocs, 
-    doc, 
+import {
+    getFirestore,
+    collection,
+    getDocs,
+    doc,
     getDoc,
-    updateDoc, 
-    onSnapshot, 
-    orderBy, 
+    updateDoc,
+    onSnapshot,
+    orderBy,
     query
 } from 'https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js';
 
@@ -24,13 +24,13 @@ let currentStaffId = null;
 // ============================================
 // CHECK SESSION ON PAGE LOAD
 // ============================================
-window.addEventListener('DOMContentLoaded', function() {
+window.addEventListener('DOMContentLoaded', function () {
     const staffSession = sessionStorage.getItem('staffSession');
-    
+
     if (staffSession) {
         const sessionData = JSON.parse(staffSession);
         currentStaffId = sessionData.staffId;
-        
+
         // Auto-login if session exists
         document.getElementById('loginContainer').style.display = 'none';
         document.getElementById('dashboard').classList.add('active');
@@ -41,7 +41,7 @@ window.addEventListener('DOMContentLoaded', function() {
 // ============================================
 // LOGIN
 // ============================================
-document.getElementById('loginForm').addEventListener('submit', async function(e) {
+document.getElementById('loginForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     const staffId = document.getElementById('staffId').value.trim();
     const password = document.getElementById('password').value.trim();
@@ -59,7 +59,6 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     });
 
     if (authenticated) {
-        // Save to session storage
         const sessionData = {
             staffId: staffId,
             staffName: staffName,
@@ -68,11 +67,11 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         };
         sessionStorage.setItem('staffSession', JSON.stringify(sessionData));
         currentStaffId = staffId;
-        
+
         document.getElementById('loginContainer').style.display = 'none';
         document.getElementById('dashboard').classList.add('active');
         await initializeDashboard();
-        
+
         showNotification(`Welcome back, ${staffName}!`, 'success');
     } else {
         showError('Invalid staff ID or password!');
@@ -87,15 +86,14 @@ function showError(message) {
 }
 
 window.logout = function () {
-    // Clear session storage
     sessionStorage.removeItem('staffSession');
     currentStaffId = null;
-    
+
     document.getElementById('dashboard').classList.remove('active');
     document.getElementById('loginContainer').style.display = 'flex';
     document.getElementById('staffId').value = '';
     document.getElementById('password').value = '';
-    
+
     showNotification('Logged out successfully!', 'info');
 };
 
@@ -103,7 +101,6 @@ window.logout = function () {
 // INITIALIZE DASHBOARD
 // ============================================
 async function initializeDashboard() {
-    // Display staff name in header
     const staffSession = sessionStorage.getItem('staffSession');
     if (staffSession) {
         const sessionData = JSON.parse(staffSession);
@@ -112,11 +109,47 @@ async function initializeDashboard() {
             welcomeMsg.textContent = `Welcome, ${sessionData.staffName || sessionData.staffId}`;
         }
     }
-    
+
     await loadOrders();
     updateStats();
     setupFilters();
     setupRealtimeListeners();
+}
+
+// ============================================
+// SETUP FILTERS
+// ============================================
+function setupFilters() {
+    const filterButtons = document.querySelectorAll('.filter-btn');
+
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', function () {
+            filterButtons.forEach(b => b.classList.remove('active'));
+
+            this.classList.add('active');
+
+            currentFilter = this.dataset.status;
+
+            renderOrders();
+        });
+    });
+}
+
+// ============================================
+// UPDATE FILTER COUNTS
+// ============================================
+function updateFilterCounts() {
+    const allCount = orders.filter(o => o.status !== 'completed').length;
+    const pendingCount = orders.filter(o => o.status === 'pending').length;
+    const preparingCount = orders.filter(o => o.status === 'preparing').length;
+    const readyCount = orders.filter(o => o.status === 'ready').length;
+    const completedCount = orders.filter(o => o.status === 'completed').length;
+
+    document.getElementById('countAll').textContent = allCount;
+    document.getElementById('countPending').textContent = pendingCount;
+    document.getElementById('countPreparing').textContent = preparingCount;
+    document.getElementById('countReady').textContent = readyCount;
+    document.getElementById('countCompleted').textContent = completedCount;
 }
 
 // ============================================
@@ -129,23 +162,25 @@ async function loadOrders() {
     orders = [];
     snapshot.forEach(doc => {
         const order = { id: doc.id, ...doc.data() };
-        if (order.status !== 'completed') {
-            orders.push(order);
-        }
+        orders.push(order);
     });
 
     renderOrders();
     updateStats();
     updatePrepQueue();
+    updateFilterCounts();
 }
 
 function renderOrders() {
     const container = document.getElementById('ordersContainer');
-    let filteredOrders = currentFilter === 'all' 
-        ? orders 
-        : orders.filter(order => order.status === currentFilter);
+    let filteredOrders;
 
-    // Sort by queue position
+    if (currentFilter === 'all') {
+        filteredOrders = orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled');
+    } else {
+        filteredOrders = orders.filter(order => order.status === currentFilter);
+    }
+
     filteredOrders.sort((a, b) => (a.queuePosition || 0) - (b.queuePosition || 0));
 
     if (filteredOrders.length === 0) {
@@ -180,7 +215,6 @@ function createOrderElement(order) {
         </div>
     `).join('');
 
-    // Payment status badge
     let paymentBadge = '';
     if (order.paymentMethod === 'gcash') {
         paymentBadge = '<span class="payment-badge payment-gcash">💙 PAID - GCASH</span>';
@@ -226,26 +260,30 @@ function createOrderElement(order) {
 
 function getStatusText(status) {
     const statusTexts = {
-        'pending': '⏳ Pending Confirmation',
-        'preparing': '👨‍🍳 Preparing',
-        'ready': '✅ Ready for Pickup',
-        'completed': '🎉 Completed'
+        'pending': 'Pending Confirmation',
+        'preparing': 'Preparing',
+        'ready': 'Ready for Pickup',
+        'completed': 'Completed',
+        'cancelled': 'Cancelled'
     };
     return statusTexts[status] || status;
 }
 
 function getActionButtons(order) {
     let buttons = '';
-    
-    // Payment status button (for unpaid cash orders)
+
+    if (order.status === 'completed' || order.status === 'cancelled') {
+        return '';
+    }
+
     if (order.paymentMethod === 'cash' && order.paymentStatus === 'pending') {
         buttons += `<button class="action-btn btn-mark-paid" onclick="markAsPaid('${order.id}')">💵 Mark as Paid</button>`;
     }
-    
-    // Order status buttons
+
     switch (order.status) {
         case 'pending':
             buttons += `<button class="action-btn btn-accept" onclick="updateOrderStatus('${order.id}', 'preparing')">👨‍🍳 Start Preparing</button>`;
+            buttons += `<button class="action-btn btn-cancel" onclick="cancelOrder('${order.id}')">❌ Cancel Order</button>`;
             break;
         case 'preparing':
             buttons += `<button class="action-btn btn-ready" onclick="updateOrderStatus('${order.id}', 'ready')">✅ Mark as Ready</button>`;
@@ -254,31 +292,50 @@ function getActionButtons(order) {
             buttons += `<button class="action-btn btn-complete" onclick="updateOrderStatus('${order.id}', 'completed')">🎉 Complete Order</button>`;
             break;
     }
-    
+
     return buttons;
 }
 
 // ============================================
 // MARK AS PAID (for cash orders)
 // ============================================
-window.markAsPaid = async function(orderId) {
+window.markAsPaid = async function (orderId) {
     const orderRef = doc(db, 'orders', orderId);
-    
+
     await updateDoc(orderRef, {
         paymentStatus: 'paid',
         paidAt: new Date()
     });
-    
+
     showNotification('Order marked as paid!', 'success');
+};
+
+// ============================================
+// CANCEL ORDER
+// ============================================
+window.cancelOrder = async function (orderId) {
+    if (!confirm('Are you sure you want to cancel this order?')) {
+        return;
+    }
+
+    const orderRef = doc(db, 'orders', orderId);
+
+    await updateDoc(orderRef, {
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        cancelledBy: currentStaffId
+    });
+
+    showNotification('Order cancelled successfully!', 'info');
 };
 
 // ============================================
 // UPDATE ORDER STATUS
 // ============================================
-window.updateOrderStatus = async function(orderId, newStatus) {
+window.updateOrderStatus = async function (orderId, newStatus) {
     const orderRef = doc(db, 'orders', orderId);
     const orderSnap = await getDoc(orderRef);
-    
+
     if (!orderSnap.exists()) {
         showNotification('Order not found', 'error');
         return;
@@ -291,13 +348,12 @@ window.updateOrderStatus = async function(orderId, newStatus) {
         updatedAt: new Date()
     });
 
-    // Update inventory when order is completed
     if (newStatus === 'completed' && orderData && orderData.items) {
         for (const item of orderData.items) {
             if (item.inventoryId) {
                 const inventoryRef = doc(db, 'inventory', item.inventoryId);
                 const inventorySnap = await getDoc(inventoryRef);
-                
+
                 if (inventorySnap.exists()) {
                     const currentStock = inventorySnap.data().stock || 0;
                     const newStock = Math.max(0, currentStock - item.quantity);
@@ -352,7 +408,7 @@ function updatePrepQueue() {
         const orderTime = order.timestamp.toDate ? order.timestamp.toDate() : new Date(order.timestamp);
         const prepTime = getTimeAgo(orderTime);
         const itemsText = order.items.map(item => `${item.name} (×${item.quantity})`).join(', ');
-        
+
         const paymentIcon = order.paymentMethod === 'gcash' ? '💙' : '💵';
         const paymentStatus = order.paymentStatus === 'paid' ? '✅' : '⏳';
 
@@ -381,9 +437,7 @@ function setupRealtimeListeners() {
         const newOrders = [];
         snapshot.forEach(doc => {
             const order = { id: doc.id, ...doc.data() };
-            if (order.status !== 'completed') {
-                newOrders.push(order);
-            }
+            newOrders.push(order);
         });
 
         const previousOrderIds = orders.map(order => order.id);

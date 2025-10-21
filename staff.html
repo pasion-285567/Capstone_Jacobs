@@ -57,10 +57,21 @@
 
                 <!-- Status Filter -->
                 <div class="status-filter">
-                    <button class="filter-btn active" data-status="all">All Orders</button>
-                    <button class="filter-btn" data-status="pending">Pending</button>
-                    <button class="filter-btn" data-status="preparing">Preparing</button>
-                    <button class="filter-btn" data-status="ready">Ready</button>
+                    <button class="filter-btn active" data-status="all">
+                        All Orders <span class="filter-count" id="countAll">0</span>
+                    </button>
+                    <button class="filter-btn" data-status="pending">
+                        Pending <span class="filter-count" id="countPending">0</span>
+                    </button>
+                    <button class="filter-btn" data-status="preparing">
+                        Preparing <span class="filter-count" id="countPreparing">0</span>
+                    </button>
+                    <button class="filter-btn" data-status="ready">
+                        Ready <span class="filter-count" id="countReady">0</span>
+                    </button>
+                    <button class="filter-btn" data-status="completed">
+                        Completed <span class="filter-count" id="countCompleted">0</span>
+                    </button>
                 </div>
 
                 <!-- Orders Container -->

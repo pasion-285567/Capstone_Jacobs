@@ -13,7 +13,9 @@
     <div class="container">
         <!-- Logo Header -->
         <div class="logo-section">
+            <h2>Welcome to</h2>
             <img src="images/logo.png" alt="Jacob's Café & Resto">
+            <h2>Café & Resto</h2>
         </div>
 
         <!-- Tab Navigation -->
@@ -84,7 +86,7 @@
         <div class="payment-content">
             <span class="close-btn" onclick="closePaymentModal()">×</span>
             <h2 style="text-align: center; margin-bottom: 20px; color: #BA8E4A;">Payment</h2>
-            
+
             <!-- Payment Method Selection -->
             <div class="payment-method-selection">
                 <label style="font-weight: bold; margin-bottom: 10px; display: block;">Select Payment Method:</label>
@@ -101,12 +103,14 @@
             <div class="payment-form">
                 <div class="form-group">
                     <label>Total Amount:</label>
-                    <input type="text" id="paymentTotal" readonly style="background: #f8f9fa; padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 100%; font-size: 1.1rem; font-weight: bold;">
+                    <input type="text" id="paymentTotal" readonly
+                        style="background: #f8f9fa; padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 100%; font-size: 1.1rem; font-weight: bold;">
                 </div>
-                
+
                 <!-- Cash Payment Message -->
                 <div id="cashPaymentFields">
-                    <div style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 10px; text-align: center; margin-top: 15px;">
+                    <div
+                        style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 10px; text-align: center; margin-top: 15px;">
                         <div style="font-size: 2rem; margin-bottom: 10px;">🏪</div>
                         <h3 style="color: #0c5460; margin-bottom: 10px;">Pay Over the Counter</h3>
                         <p style="color: #0c5460; font-size: 0.95rem;">
@@ -117,21 +121,64 @@
 
                 <!-- GCash Payment Fields -->
                 <div id="gcashPaymentFields" style="display: none;">
-                    <div style="background: #e7f3ff; border: 1px solid #b3d9ff; padding: 20px; border-radius: 10px; text-align: center; margin-top: 15px;">
+                    <div
+                        style="background: #e7f3ff; border: 1px solid #b3d9ff; padding: 20px; border-radius: 10px; text-align: center; margin-top: 15px;">
                         <div style="font-size: 2rem; margin-bottom: 10px;">💙</div>
                         <h3 style="color: #004085; margin-bottom: 10px;">GCash Payment</h3>
                         <p style="color: #004085; font-size: 0.95rem; margin-bottom: 15px;">
                             You'll be redirected to GCash to complete your payment.
                         </p>
-                        <div style="background: #fff3cd; padding: 10px; border-radius: 5px; font-size: 0.85rem; color: #856404;">
+                        <div
+                            style="background: #fff3cd; padding: 10px; border-radius: 5px; font-size: 0.85rem; color: #856404;">
                             <strong>🧪 Test Mode Active</strong><br>
                             Use test GCash number for testing
                         </div>
                     </div>
                 </div>
-                
-                <button class="checkout-btn" onclick="processOrder()" id="processOrderBtn" style="width: 100%; padding: 15px; background: #BA8E4A; color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 20px;">
+
+                <button class="checkout-btn" onclick="processOrder()" id="processOrderBtn"
+                    style="width: 100%; padding: 15px; background: #BA8E4A; color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 20px;">
                     Confirm Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Button -->
+    <button class="feedback-btn" onclick="openFeedbackModal()">
+        ⭐ Feedback
+    </button>
+
+    <!-- Feedback Modal -->
+    <div class="feedback-modal" id="feedbackModal">
+        <div class="feedback-content">
+            <span class="close-btn" onclick="closeFeedbackModal()">×</span>
+            <h2 style="text-align: center; margin-bottom: 20px; color: #BA8E4A;">Rate Your Experience</h2>
+
+            <div class="feedback-form">
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <div style="font-weight: bold; margin-bottom: 15px; font-size: 1.1rem;">How was your experience?
+                    </div>
+                    <div class="star-rating" id="starRating">
+                        <span class="star" data-rating="1">⭐</span>
+                        <span class="star" data-rating="2">⭐</span>
+                        <span class="star" data-rating="3">⭐</span>
+                        <span class="star" data-rating="4">⭐</span>
+                        <span class="star" data-rating="5">⭐</span>
+                    </div>
+                    <div id="ratingText" style="margin-top: 10px; font-size: 0.9rem; color: #666; min-height: 20px;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Comments (Optional):</label>
+                    <textarea id="feedbackComment" placeholder="Tell us about your experience..." rows="4"
+                        style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 10px; resize: vertical; font-family: inherit;"></textarea>
+                </div>
+
+                <button class="submit-feedback-btn" onclick="submitFeedback()"
+                    style="width: 100%; padding: 15px; background: linear-gradient(135deg, #BA8E4A, #d4a562); color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 15px;">
+                    Submit Feedback
                 </button>
             </div>
         </div>
@@ -139,4 +186,5 @@
 
     <script type="module" src="scripts.js"></script>
 </body>
+
 </html>

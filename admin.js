@@ -17,41 +17,68 @@ import {
     getDoc
 } from 'https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js';
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Global variables
 let inventoryItems = [];
 let orders = [];
 let categories = [];
+let tables = [];
+let feedbacks = [];
 let currentEditingItem = null;
 let currentEditingCategory = null;
 let currentEditingInventory = null;
+let currentEditingTable = null;
+let currentQRCode = null;
+
+// ============================================
+// CHECK SESSION ON PAGE LOAD
+// ============================================
+window.addEventListener('DOMContentLoaded', function () {
+    const adminSession = sessionStorage.getItem('adminSession');
+
+    if (adminSession) {
+        const sessionData = JSON.parse(adminSession);
+
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('dashboard').classList.add('active');
+        initializeDashboard();
+    }
+});
 
 // ============================================
 // LOGIN
 // ============================================
-document.getElementById('loginForm').addEventListener('submit', async function(e) {
+document.getElementById('loginForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value.trim();
 
     const usersSnapshot = await getDocs(collection(db, 'users'));
     let authenticated = false;
+    let adminName = '';
 
     usersSnapshot.forEach(doc => {
         const user = doc.data();
         if (user.username === email && user.password === password && user.role === 'admin') {
             authenticated = true;
+            adminName = user.name || email;
         }
     });
 
     if (authenticated) {
+        const sessionData = {
+            email: email,
+            name: adminName,
+            loginTime: new Date().toISOString(),
+            role: 'admin'
+        };
+        sessionStorage.setItem('adminSession', JSON.stringify(sessionData));
+
         document.getElementById('loginContainer').style.display = 'none';
         document.getElementById('dashboard').classList.add('active');
         await initializeDashboard();
-        showNotification('Welcome to Admin Dashboard!', 'success');
+        showNotification(`Welcome ${adminName}!`, 'success');
     } else {
         showError('Invalid email or password!');
     }
@@ -65,6 +92,8 @@ function showError(message) {
 }
 
 window.logout = function () {
+    sessionStorage.removeItem('adminSession');
+
     document.getElementById('dashboard').classList.remove('active');
     document.getElementById('loginContainer').style.display = 'flex';
     document.getElementById('email').value = '';
@@ -112,11 +141,31 @@ function showSection(sectionId) {
         case 'categories':
             renderCategories();
             break;
+        case 'tables':
+            renderTables();
+            break;
+        case 'feedbacks':
+            renderFeedbacks();
+            break;
         case 'reports':
             updateReportsData();
             break;
     }
 }
+
+// ============================================
+// INITIALIZE CATEGORIES
+// ============================================
+async function initializeCategories() {
+    const categoriesSnapshot = await getDocs(collection(db, 'categories'));
+    for (const category of defaultCategories) {
+        await setDoc(doc(db, 'categories', category.id), {
+            name: category.name,
+            image: category.image
+        });
+    }
+}
+
 
 // ============================================
 // REALTIME LISTENERS
@@ -145,6 +194,29 @@ function setupRealtimeListeners() {
             });
         });
         updateOverviewStats();
+    });
+
+    const tablesQuery = query(collection(db, 'tables'), orderBy('tableNumber'));
+    onSnapshot(tablesQuery, (snapshot) => {
+        tables = [];
+        snapshot.forEach(doc => {
+            tables.push({ id: doc.id, ...doc.data() });
+        });
+        renderTables();
+    });
+
+    const feedbacksQuery = query(collection(db, 'feedback'), orderBy('timestamp', 'desc'));
+    onSnapshot(feedbacksQuery, (snapshot) => {
+        feedbacks = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            feedbacks.push({
+                id: doc.id,
+                ...data,
+                timestamp: data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp)
+            });
+        });
+        renderFeedbacks();
     });
 }
 
@@ -181,9 +253,14 @@ async function loadAllData() {
         });
     });
 
+    await loadTables();
+    await loadFeedbacks();
+
     renderInventory();
     renderMenuItems();
     renderCategories();
+    renderTables();
+    renderFeedbacks();
     updateOverviewStats();
 }
 
@@ -191,7 +268,7 @@ async function loadAllData() {
 // OVERVIEW STATS
 // ============================================
 function updateOverviewStats() {
-    const availableItems = inventoryItems.filter(item => 
+    const availableItems = inventoryItems.filter(item =>
         item.showInMenu && item.status === 'available' && item.stock > 0
     );
     document.getElementById('totalMenuItems').textContent = availableItems.length;
@@ -207,8 +284,6 @@ function updateOverviewStats() {
     const todayRevenue = todayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
     document.getElementById('todayRevenue').textContent = `₱${todayRevenue.toFixed(2)}`;
 }
-
-
 
 // ============================================
 // RENDER MENU ITEMS
@@ -287,7 +362,6 @@ function renderCategories() {
                 <div class="category-name">${category.name}</div>
                 <div class="category-count">${itemCount} items</div>
             </div>
-            <div class="category-description">${category.description || 'No description'}</div>
             <div class="category-actions">
                 <button class="btn-edit" onclick="editCategory('${category.id}')"
                     ${category.id === 'all-meals' ? 'disabled' : ''}>Edit</button>
@@ -300,18 +374,18 @@ function renderCategories() {
     });
 }
 
-window.filterInventoryByCategory = function(categoryId) {
+window.filterInventoryByCategory = function (categoryId) {
     showSection('inventory');
     const tbody = document.getElementById('inventoryTableBody');
-    
+
     const filteredItems = inventoryItems.filter(item => {
         if (categoryId === 'all-meals') return true;
-        
+
         const itemCat = (item.category || '').toLowerCase().trim();
         const catId = categoryId.toLowerCase().trim();
         const category = categories.find(c => c.id === categoryId);
         const catName = category ? (category.name || '').toLowerCase().trim() : '';
-        
+
         return itemCat === catId || itemCat === catName;
     });
 
@@ -358,7 +432,7 @@ window.filterInventoryByCategory = function(categoryId) {
 };
 
 // ============================================
-// CATEGORY MODAL
+// CATEGORY MODAL - UPDATED
 // ============================================
 window.openCategoryModal = function (categoryId = null) {
     currentEditingCategory = categoryId;
@@ -370,15 +444,10 @@ window.openCategoryModal = function (categoryId = null) {
         if (category) {
             title.textContent = 'Edit Category';
             document.getElementById('categoryName').value = category.name;
-            document.getElementById('categoryId').value = category.id;
-            document.getElementById('categoryImage').value = category.image || '';
-            document.getElementById('categoryDescription').value = category.description || '';
-            document.getElementById('categoryId').disabled = true;
         }
     } else {
         title.textContent = 'Add New Category';
         document.getElementById('categoryForm').reset();
-        document.getElementById('categoryId').disabled = false;
     }
 
     modal.classList.add('active');
@@ -393,17 +462,29 @@ window.closeCategoryModal = function () {
 document.getElementById('categoryForm').addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    const categoryId = document.getElementById('categoryId').value.trim();
+    const categoryName = document.getElementById('categoryName').value.trim();
+
+    const categoryId = categoryName.toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        .replace(/-+/g, '-')
+        .trim();
+
     const categoryData = {
-        name: document.getElementById('categoryName').value.trim(),
-        image: document.getElementById('categoryImage').value.trim() || `images/categories/default.webp`,
-        description: document.getElementById('categoryDescription').value.trim()
+        name: categoryName,
+        image: `images/categories/${categoryId}.webp`
     };
 
     if (currentEditingCategory) {
         await updateDoc(doc(db, 'categories', currentEditingCategory), categoryData);
         showNotification('Category updated!', 'success');
     } else {
+        const existingCat = categories.find(c => c.id === categoryId);
+        if (existingCat) {
+            showNotification('Category with similar name already exists!', 'error');
+            return;
+        }
+
         await setDoc(doc(db, 'categories', categoryId), categoryData);
         showNotification('Category added!', 'success');
     }
@@ -510,7 +591,7 @@ window.toggleShowInMenu = async function (itemId, show) {
 // ============================================
 // INVENTORY MODAL
 // ============================================
-window.openInventoryModal = async function(itemId = null) {
+window.openInventoryModal = async function (itemId = null) {
     currentEditingInventory = itemId;
     const modal = document.getElementById('inventoryModal');
     const title = document.getElementById('inventoryModalTitle');
@@ -547,13 +628,13 @@ window.openInventoryModal = async function(itemId = null) {
     modal.classList.add('active');
 };
 
-window.closeInventoryModal = function() {
+window.closeInventoryModal = function () {
     document.getElementById('inventoryModal').classList.remove('active');
     document.getElementById('inventoryForm').reset();
     currentEditingInventory = null;
 };
 
-document.getElementById('inventoryImageFile').addEventListener('change', function(e) {
+document.getElementById('inventoryImageFile').addEventListener('change', function (e) {
     const file = e.target.files[0];
     const preview = document.getElementById('inventoryImagePreview');
 
@@ -565,7 +646,7 @@ document.getElementById('inventoryImageFile').addEventListener('change', functio
         }
 
         const reader = new FileReader();
-        reader.onload = function(evt) {
+        reader.onload = function (evt) {
             preview.src = evt.target.result;
             preview.style.display = 'block';
         };
@@ -582,7 +663,7 @@ function convertImageToBase64(file) {
     });
 }
 
-document.getElementById('inventoryForm').addEventListener('submit', async function(e) {
+document.getElementById('inventoryForm').addEventListener('submit', async function (e) {
     e.preventDefault();
 
     const itemName = document.getElementById('inventoryName').value.trim();
@@ -630,17 +711,245 @@ document.getElementById('inventoryForm').addEventListener('submit', async functi
     await renderInventory();
 });
 
-window.editInventoryItem = function(itemId) {
+window.editInventoryItem = function (itemId) {
     openInventoryModal(itemId);
 };
 
-window.deleteInventoryItem = async function(itemId) {
+window.deleteInventoryItem = async function (itemId) {
     if (confirm('Delete this inventory item?')) {
         await deleteDoc(doc(db, 'inventory', itemId));
         showNotification('Item deleted!', 'success');
         await renderInventory();
     }
 };
+
+// ============================================
+// TABLES MANAGEMENT
+// ============================================
+async function loadTables() {
+    const tablesSnapshot = await getDocs(collection(db, 'tables'));
+    tables = [];
+    tablesSnapshot.forEach(doc => {
+        tables.push({ id: doc.id, ...doc.data() });
+    });
+    tables.sort((a, b) => a.tableNumber - b.tableNumber);
+}
+
+function renderTables() {
+    const container = document.getElementById('tablesGrid');
+
+    if (tables.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">🪑</div>
+                <div class="empty-message">No tables found</div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = '';
+    tables.forEach(table => {
+        const tableCard = document.createElement('div');
+        tableCard.className = `table-card ${table.status}`;
+        tableCard.innerHTML = `
+            <div class="table-number">Table ${table.tableNumber}</div>
+            <div class="table-info">
+                Status: <span class="status-badge status-${table.status}">${table.status}</span>
+            </div>
+            <div class="table-actions">
+                <button class="btn-qr" onclick="showQRCode(${table.tableNumber})">📱 QR Code</button>
+                <button class="btn-edit" onclick="editTable('${table.id}')">Edit</button>
+                <button class="btn-delete" onclick="deleteTable('${table.id}')">Delete</button>
+            </div>
+        `;
+        container.appendChild(tableCard);
+    });
+}
+
+window.openTableModal = function (tableId = null) {
+    currentEditingTable = tableId;
+    const modal = document.getElementById('tableModal');
+    const title = document.getElementById('tableModalTitle');
+
+    if (tableId) {
+        const table = tables.find(t => t.id === tableId);
+        if (table) {
+            title.textContent = 'Edit Table';
+            document.getElementById('tableNumber').value = table.tableNumber;
+            document.getElementById('tableStatus').value = table.status;
+            document.getElementById('tableNumber').disabled = true;
+        }
+    } else {
+        title.textContent = 'Add New Table';
+        document.getElementById('tableForm').reset();
+        document.getElementById('tableNumber').disabled = false;
+    }
+
+    modal.classList.add('active');
+};
+
+window.closeTableModal = function () {
+    document.getElementById('tableModal').classList.remove('active');
+    document.getElementById('tableForm').reset();
+    currentEditingTable = null;
+};
+
+document.getElementById('tableForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const tableNumber = parseInt(document.getElementById('tableNumber').value);
+    const tableStatus = document.getElementById('tableStatus').value;
+
+    const tableData = {
+        tableNumber: tableNumber,
+        status: tableStatus,
+        qrUrl: `${window.location.origin}/?table=${tableNumber}`,
+        updatedAt: Timestamp.now()
+    };
+
+    if (!currentEditingTable) {
+        const existing = tables.find(t => t.tableNumber === tableNumber);
+        if (existing) {
+            showNotification('Table number already exists!', 'error');
+            return;
+        }
+        tableData.createdAt = Timestamp.now();
+    }
+
+    if (currentEditingTable) {
+        await updateDoc(doc(db, 'tables', currentEditingTable), tableData);
+        showNotification('Table updated!', 'success');
+    } else {
+        await addDoc(collection(db, 'tables'), tableData);
+        showNotification('Table added!', 'success');
+    }
+
+    await loadTables();
+    renderTables();
+    closeTableModal();
+});
+
+window.editTable = function (tableId) {
+    openTableModal(tableId);
+};
+
+window.deleteTable = async function (tableId) {
+    if (confirm('Delete this table?')) {
+        await deleteDoc(doc(db, 'tables', tableId));
+        showNotification('Table deleted!', 'success');
+        await loadTables();
+        renderTables();
+    }
+};
+
+// ============================================
+// QR CODE GENERATION
+// ============================================
+window.showQRCode = function (tableNumber) {
+    const modal = document.getElementById('qrModal');
+    const title = document.getElementById('qrModalTitle');
+    const container = document.getElementById('qrCodeContainer');
+    const urlDisplay = document.getElementById('qrUrl');
+
+    const qrUrl = `${window.location.origin}/?table=${tableNumber}`;
+
+    title.textContent = `Table ${tableNumber} QR Code`;
+    urlDisplay.textContent = qrUrl;
+    container.innerHTML = '';
+
+    currentQRCode = new QRCode(container, {
+        text: qrUrl,
+        width: 256,
+        height: 256,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+    });
+
+    modal.classList.add('active');
+};
+
+window.closeQRModal = function () {
+    document.getElementById('qrModal').classList.remove('active');
+    currentQRCode = null;
+};
+
+window.downloadQRCode = function () {
+    const canvas = document.querySelector('#qrCodeContainer canvas');
+    if (canvas) {
+        const url = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        const tableNum = document.getElementById('qrModalTitle').textContent.match(/\d+/)[0];
+        link.download = `table-${tableNum}-qr.png`;
+        link.href = url;
+        link.click();
+        showNotification('QR Code downloaded!', 'success');
+    }
+};
+
+// ============================================
+// CUSTOMER FEEDBACKS
+// ============================================
+async function loadFeedbacks() {
+    const feedbacksQuery = query(collection(db, 'feedback'), orderBy('timestamp', 'desc'));
+    const snapshot = await getDocs(feedbacksQuery);
+    feedbacks = [];
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        feedbacks.push({
+            id: doc.id,
+            ...data,
+            timestamp: data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp)
+        });
+    });
+}
+
+function renderFeedbacks() {
+    const container = document.getElementById('feedbacksContainer');
+
+    if (feedbacks.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">⭐</div>
+                <div class="empty-message">No feedback yet</div>
+            </div>
+        `;
+        document.getElementById('totalFeedbacks').textContent = '0';
+        document.getElementById('avgRating').textContent = '0.0';
+        return;
+    }
+
+    const totalRating = feedbacks.reduce((sum, f) => sum + f.rating, 0);
+    const avgRating = (totalRating / feedbacks.length).toFixed(1);
+
+    document.getElementById('totalFeedbacks').textContent = feedbacks.length;
+    document.getElementById('avgRating').textContent = avgRating;
+
+    container.innerHTML = feedbacks.map(feedback => {
+        const stars = '⭐'.repeat(feedback.rating);
+        const date = feedback.timestamp.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        return `
+            <div class="feedback-card">
+                <div class="feedback-header">
+                    <div class="feedback-table">Table ${feedback.tableNumber}</div>
+                    <div class="feedback-rating">${stars}</div>
+                </div>
+                <div class="feedback-date">${date}</div>
+                <div class="feedback-comment ${!feedback.comment ? 'no-comment' : ''}">
+                    ${feedback.comment || 'No comment provided'}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
 
 // ============================================
 // REPORTS
@@ -703,5 +1012,8 @@ window.showNotification = showNotification;
 // INITIALIZE ON PAGE LOAD
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadAllData();
+    const adminSession = sessionStorage.getItem('adminSession');
+    if (!adminSession) {
+        await loadAllData();
+    }
 });

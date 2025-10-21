@@ -1,23 +1,22 @@
 import { firebaseConfig } from './firebaseConfig.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js';
-import { 
-    getFirestore, 
-    collection, 
-    addDoc, 
-    getDocs, 
+import {
+    getFirestore,
+    collection,
+    addDoc,
+    getDocs,
     doc,
-    onSnapshot, 
-    query, 
-    where, 
+    onSnapshot,
+    query,
+    where,
     orderBy,
     Timestamp,
     updateDoc,
-    setDoc,      
-    getDoc,      
+    setDoc,
+    getDoc,
     deleteDoc
 } from 'https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js';
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
@@ -27,17 +26,99 @@ let tableNumber = null;
 let menuItems = [];
 
 // ============================================
-// TABLE NUMBER SETUP
+// TABLE NUMBER SETUP WITH VALIDATION
 // ============================================
-function getTableNumber() {
+async function getTableNumber() {
     const urlParams = new URLSearchParams(window.location.search);
     let table = urlParams.get('table');
-    
+
     if (!table) {
         table = prompt('Please enter your table number:');
-        if (table) window.location.href = `${window.location.pathname}?table=${table}`;
+        if (table) {
+            const isValid = await validateTable(table);
+            if (isValid) {
+                window.location.href = `${window.location.pathname}?table=${table}`;
+                return table;
+            } else {
+                alert('❌ Invalid table number! Please contact staff or scan a valid QR code.');
+                showInvalidTablePage();
+                return null;
+            }
+        } else {
+            showInvalidTablePage();
+            return null;
+        }
+    } else {
+        const isValid = await validateTable(table);
+        if (!isValid) {
+            alert('❌ Invalid table number! Please scan a valid QR code or contact staff.');
+            showInvalidTablePage();
+            return null;
+        }
+        return table;
     }
-    return table;
+}
+
+async function validateTable(tableNumber) {
+    try {
+        const tablesSnapshot = await getDocs(collection(db, 'tables'));
+        let isValid = false;
+
+        tablesSnapshot.forEach(doc => {
+            const table = doc.data();
+            if (table.tableNumber == tableNumber) {
+                isValid = true;
+            }
+        });
+
+        return isValid;
+    } catch (error) {
+        console.error('Error validating table:', error);
+        return false;
+    }
+}
+
+function showInvalidTablePage() {
+    document.body.innerHTML = `
+        <div style="
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            text-align: center;
+        ">
+            <div style="
+                background: white;
+                padding: 40px;
+                border-radius: 20px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+                max-width: 500px;
+            ">
+                <div style="font-size: 5rem; margin-bottom: 20px;">❌</div>
+                <h1 style="color: #BA8E4A; margin-bottom: 15px; font-size: 2rem;">Invalid Table Number</h1>
+                <p style="color: #666; margin-bottom: 25px; line-height: 1.6;">
+                    The table number you entered or scanned is not valid. 
+                    Please scan a valid QR code from your table or contact our staff for assistance.
+                </p>
+                <button onclick="location.reload()" style="
+                    background: linear-gradient(135deg, #BA8E4A, #d4a562);
+                    color: white;
+                    border: none;
+                    padding: 15px 30px;
+                    border-radius: 50px;
+                    font-size: 1.1rem;
+                    font-weight: bold;
+                    cursor: pointer;
+                    box-shadow: 0 4px 15px rgba(186, 142, 74, 0.3);
+                ">
+                    Try Again
+                </button>
+            </div>
+        </div>
+    `;
 }
 
 // ============================================
@@ -62,24 +143,21 @@ function loadActiveOrders() {
 // ============================================
 function listenToOrder(orderId) {
     const orderRef = doc(db, 'orders', orderId);
-    
+
     onSnapshot(orderRef, (docSnapshot) => {
         if (!docSnapshot.exists()) return;
-        
+
         const updatedOrder = { id: docSnapshot.id, ...docSnapshot.data() };
         const index = activeOrders.findIndex(o => o.id === orderId);
         const oldStatus = index >= 0 ? activeOrders[index].status : null;
-        
-        // Update or add order
+
         index >= 0 ? activeOrders[index] = updatedOrder : activeOrders.push(updatedOrder);
-        
+
         saveActiveOrders();
         updateOrderStatusDisplay();
-        
-        // Show notification on status change
+
         if (oldStatus && oldStatus !== updatedOrder.status) showStatusNotification(updatedOrder);
-        
-        // Auto-remove completed orders after 5 seconds
+
         if (updatedOrder.status === 'completed') setTimeout(() => removeCompletedOrder(orderId), 5000);
     });
 }
@@ -104,41 +182,45 @@ function removeCompletedOrder(orderId) {
 // INITIALIZE APP
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
-    tableNumber = getTableNumber();
+    tableNumber = await getTableNumber();
+
+    if (!tableNumber) {
+        return;
+    }
+
     loadActiveOrders();
     await loadCategories();
     await loadMenuItems('all-meals');
     updateCartDisplay();
     setupRealtimeMenuListener();
-    
-    // Check for GCash payment redirect
+
     await checkGCashPaymentStatus();
 });
 
 // ============================================
 // SEARCH FUNCTIONALITY
 // ============================================
-document.getElementById('searchInput').addEventListener('input', function(e) {
+document.getElementById('searchInput').addEventListener('input', function (e) {
     const searchTerm = e.target.value.toLowerCase().trim();
     const grid = document.getElementById('menuGrid');
-    
+
     if (!searchTerm) {
         const currentCategory = document.getElementById('menuSectionTitle').dataset.currentCategory || 'all-meals';
         displayMenuItems(currentCategory);
         return;
     }
-    
-    const filteredItems = menuItems.filter(item => 
+
+    const filteredItems = menuItems.filter(item =>
         item.name.toLowerCase().includes(searchTerm) ||
         (item.category && item.category.toLowerCase().includes(searchTerm))
     );
-    
+
     if (filteredItems.length === 0) {
         grid.innerHTML = '<div class="empty-state"><p>No items found</p></div>';
         document.getElementById('menuSectionTitle').textContent = 'Search Results (0)';
         return;
     }
-    
+
     grid.innerHTML = '';
     filteredItems.forEach(item => grid.appendChild(createMenuItemElement(item)));
     document.getElementById('menuSectionTitle').textContent = `Search Results (${filteredItems.length})`;
@@ -152,7 +234,7 @@ function setupRealtimeMenuListener() {
         collection(db, 'inventory'),
         where('showInMenu', '==', true)
     );
-    
+
     onSnapshot(inventoryQuery, (snapshot) => {
         menuItems = [];
         snapshot.forEach(doc => {
@@ -161,7 +243,7 @@ function setupRealtimeMenuListener() {
                 menuItems.push({ id: doc.id, ...data });
             }
         });
-        
+
         const currentCategory = document.getElementById('menuSectionTitle').dataset.currentCategory || 'all-meals';
         displayMenuItems(currentCategory);
     });
@@ -172,7 +254,7 @@ function setupRealtimeMenuListener() {
 // ============================================
 async function loadCategories() {
     const grid = document.getElementById('categoriesGrid');
-    
+
     const categoriesSnapshot = await getDocs(collection(db, 'categories'));
     const categories = [];
     categoriesSnapshot.forEach(doc => categories.push({ id: doc.id, ...doc.data() }));
@@ -181,14 +263,14 @@ async function loadCategories() {
         grid.innerHTML = '<div class="empty-state"><p>No categories available</p></div>';
         return;
     }
-    
+
     grid.innerHTML = '';
     categories.forEach(category => {
         const btn = document.createElement('div');
         btn.className = 'category-btn';
         btn.onclick = () => {
             loadMenuItems(category.id);
-            switchTab('all-meals'); // Switch to All Meals tab when category is clicked
+            switchTab('all-meals');
         };
         btn.innerHTML = `
             <img src="${category.image}" alt="${category.name}">
@@ -204,19 +286,17 @@ async function loadCategories() {
 async function loadMenuItems(categoryId) {
     const grid = document.getElementById('menuGrid');
     const title = document.getElementById('menuSectionTitle');
-    
+
     grid.innerHTML = '<div class="loading">Loading menu...</div>';
     title.dataset.currentCategory = categoryId;
 
-    // Get category name
     const categoryDoc = await getDocs(collection(db, 'categories'));
     const categories = [];
     categoryDoc.forEach(doc => categories.push({ id: doc.id, ...doc.data() }));
-    
+
     const category = categories.find(c => c.id === categoryId);
     title.textContent = category ? category.name : 'Menu Items';
 
-    // Get menu items
     const inventoryQuery = query(
         collection(db, 'inventory'),
         where('showInMenu', '==', true)
@@ -224,7 +304,7 @@ async function loadMenuItems(categoryId) {
 
     const snapshot = await getDocs(inventoryQuery);
     menuItems = [];
-    
+
     snapshot.forEach(menuDoc => {
         const item = { id: menuDoc.id, ...menuDoc.data() };
         if (item.status === 'available' && item.stock > 0) {
@@ -240,9 +320,9 @@ async function loadMenuItems(categoryId) {
 // ============================================
 function displayMenuItems(categoryId) {
     const grid = document.getElementById('menuGrid');
-    
-    let filteredItems = categoryId === 'all-meals' 
-        ? menuItems 
+
+    let filteredItems = categoryId === 'all-meals'
+        ? menuItems
         : menuItems.filter(item => {
             const itemCat = (item.category || '').toLowerCase().trim();
             const catId = categoryId.toLowerCase().trim();
@@ -289,16 +369,13 @@ function createMenuItemElement(item) {
 // ============================================
 // TAB SWITCHING
 // ============================================
-window.switchTab = function(tabName) {
-    // Update tab buttons
+window.switchTab = function (tabName) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById(`tab-${tabName}`).classList.add('active');
-    
-    // Update tab panes
+
     document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
     document.getElementById(`pane-${tabName}`).classList.add('active');
-    
-    // Special handling for categories tab
+
     if (tabName === 'categories' && document.getElementById('categoriesGrid').innerHTML.includes('loading')) {
         loadCategories();
     }
@@ -354,10 +431,10 @@ function updateCartDisplay() {
     });
 
     cartTotal.textContent = `Total: ₱${total.toFixed(2)}`;
-    updateCartBadge(); // Add this line
+    updateCartBadge();
 }
 
-window.updateCartQuantity = function(index, change) {
+window.updateCartQuantity = function (index, change) {
     const item = cart[index];
     const menuItem = menuItems.find(m => m.id === item.id);
     const maxStock = menuItem ? menuItem.stock : item.maxStock;
@@ -373,24 +450,24 @@ window.updateCartQuantity = function(index, change) {
     }
 };
 
-window.removeFromCart = function(index) {
+window.removeFromCart = function (index) {
     const removedItem = cart[index];
     cart.splice(index, 1);
     updateCartDisplay();
     showNotification(`Removed ${removedItem.name}`, 'info');
 };
 
-window.changeQuantity = function(itemId, change) {
+window.changeQuantity = function (itemId, change) {
     const input = document.getElementById(`qty-${itemId}`);
     if (!input) return;
-    
+
     const currentValue = parseInt(input.value) || 1;
     const max = parseInt(input.max) || 1;
     const newValue = Math.max(1, Math.min(max, currentValue + change));
     input.value = newValue;
 };
 
-window.addToCart = function(itemId, itemName, itemPrice, maxStock) {
+window.addToCart = function (itemId, itemName, itemPrice, maxStock) {
     const quantityInput = document.getElementById(`qty-${itemId}`);
     const quantity = parseInt(quantityInput.value) || 1;
 
@@ -432,7 +509,7 @@ function updateOrderStatusDisplay() {
     const orderStatus = document.getElementById('orderStatus');
     if (!orderStatus) return;
 
-    const displayOrders = activeOrders.filter(o => o.status !== 'completed');
+    const displayOrders = activeOrders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
 
     if (displayOrders.length === 0) {
         orderStatus.innerHTML = '<div class="empty-state"><p>No active orders</p></div>';
@@ -447,14 +524,24 @@ function updateOrderStatusDisplay() {
             </div>`
         ).join('');
 
+        let paymentBadge = '';
+        if (order.paymentMethod === 'cash' && order.paymentStatus === 'pending') {
+            paymentBadge = '<span class="payment-status-badge payment-pending">⏳ Waiting for Payment</span>';
+        } else if (order.paymentStatus === 'paid') {
+            paymentBadge = '<span class="payment-status-badge payment-paid">✅ Paid</span>';
+        }
+
         return `
             <div style="background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 20px; padding: 20px; margin-bottom: 15px;">
                 <div style="font-weight: bold; font-size: 1.2rem; margin-bottom: 10px; color: #BA8E4A;">
                     Table ${order.tableNumber} - Ref #${order.referenceNumber}
                 </div>
                 
-                <div class="status-badge status-${order.status}" style="margin-bottom: 15px;">
-                    ${getStatusText(order.status)}
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center;">
+                    <div class="status-badge status-${order.status}">
+                        ${getStatusText(order.status)}
+                    </div>
+                    ${paymentBadge}
                 </div>
                 
                 <div style="text-align: left;">
@@ -474,10 +561,12 @@ function updateOrderStatusDisplay() {
 
 function getStatusText(status) {
     const texts = {
-        'pending': '⏳ Pending',
-        'preparing': '👨‍🍳 Preparing',
-        'ready': '✅ Ready!',
-        'completed': '🎉 Completed'
+        'pending': 'Pending',
+        'preparing': 'Preparing',
+        'ready': 'Ready!',
+        'completed': 'Completed',
+        'cancelled': 'Cancelled',
+        'pending_payment': 'Waiting for Payment'
     };
     return texts[status] || status;
 }
@@ -524,18 +613,15 @@ const PAYMONGO_PUBLIC_KEY = 'pk_test_EUwUco4SbCdTki5To8xLyuVv';
 // ============================================
 let selectedPaymentMethod = 'cash';
 
-window.selectPaymentMethod = function(method) {
+window.selectPaymentMethod = function (method) {
     selectedPaymentMethod = method;
-    
-    // Update button states
+
     document.getElementById('cashBtn').classList.toggle('active', method === 'cash');
     document.getElementById('gcashBtn').classList.toggle('active', method === 'gcash');
-    
-    // Toggle payment fields
+
     document.getElementById('cashPaymentFields').style.display = method === 'cash' ? 'block' : 'none';
     document.getElementById('gcashPaymentFields').style.display = method === 'gcash' ? 'block' : 'none';
-    
-    // Update button text
+
     const btn = document.getElementById('processOrderBtn');
     btn.textContent = method === 'cash' ? 'Confirm Order' : 'Pay with GCash';
 };
@@ -543,7 +629,7 @@ window.selectPaymentMethod = function(method) {
 // ============================================
 // PAYMENT MODAL
 // ============================================
-window.openPaymentModal = function() {
+window.openPaymentModal = function () {
     if (cart.length === 0) {
         showNotification('Your cart is empty!', 'error');
         return;
@@ -552,12 +638,11 @@ window.openPaymentModal = function() {
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     document.getElementById('paymentTotal').value = `₱${total.toFixed(2)}`;
     document.getElementById('paymentModal').classList.add('active');
-    
-    // Reset to cash payment
+
     selectPaymentMethod('cash');
 };
 
-window.closePaymentModal = function() {
+window.closePaymentModal = function () {
     document.getElementById('paymentModal').classList.remove('active');
 };
 
@@ -567,9 +652,9 @@ window.closePaymentModal = function() {
 async function createGCashPayment(orderData) {
     try {
         showNotification('Setting up GCash payment...', 'info');
-        
+
         const amount = Math.round(orderData.totalAmount * 100);
-        
+
         const response = await fetch('https://api.paymongo.com/v1/sources', {
             method: 'POST',
             headers: {
@@ -590,51 +675,47 @@ async function createGCashPayment(orderData) {
                 }
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(data.errors?.[0]?.detail || 'GCash payment setup failed');
         }
-        
+
         const sourceId = data.data.id;
         const checkoutUrl = data.data.attributes.redirect.checkout_url;
-        
+
         await savePendingGCashOrder(orderData, sourceId);
         closePaymentModal();
-        
-        // Open in centered pop-up window
+
         const width = 500;
         const height = 700;
         const left = (screen.width - width) / 2;
         const top = (screen.height - height) / 2;
-        
+
         const popup = window.open(
             checkoutUrl,
             'GCash Payment',
             `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=yes,menubar=no,scrollbars=yes,resizable=yes,status=yes`
         );
-        
+
         if (popup) {
             showNotification('Complete your payment in the popup window', 'info');
-            
-            // Monitor popup
+
             const checkPopup = setInterval(() => {
                 if (popup.closed) {
                     clearInterval(checkPopup);
                     showNotification('Checking payment status...', 'info');
-                    // Reload to check payment status
                     setTimeout(() => location.reload(), 1000);
                 }
             }, 500);
         } else {
-            // Popup blocked - fallback to redirect
             alert('Please allow pop-ups for this site to complete payment');
             window.location.href = checkoutUrl;
         }
-        
+
         return null;
-        
+
     } catch (error) {
         console.error('GCash Payment Error:', error);
         showNotification('GCash payment setup failed: ' + error.message, 'error');
@@ -655,11 +736,9 @@ async function savePendingGCashOrder(orderData, sourceId) {
         timestamp: Timestamp.now(),
         queuePosition: await getNextQueuePosition()
     };
-    
-    // Save to Firebase
+
     await addDoc(collection(db, 'orders'), order);
-    
-    // Store in session for verification after redirect
+
     sessionStorage.setItem('pendingGCashOrder', JSON.stringify({
         referenceNumber: orderData.referenceNumber,
         sourceId: sourceId,
@@ -674,51 +753,48 @@ async function checkGCashPaymentStatus() {
     const urlParams = new URLSearchParams(window.location.search);
     const paymentStatus = urlParams.get('payment');
     const orderRef = urlParams.get('order');
-    
+
     if (paymentStatus && orderRef) {
         const pending = sessionStorage.getItem('pendingGCashOrder');
-        
+
         if (pending) {
             const pendingOrder = JSON.parse(pending);
-            
+
             if (paymentStatus === 'success') {
-                // Verify payment with PayMongo
                 try {
                     showNotification('Verifying payment...', 'info');
-                    
+
                     const response = await fetch(`https://api.paymongo.com/v1/sources/${pendingOrder.sourceId}`, {
                         headers: {
                             'Authorization': 'Basic ' + btoa(PAYMONGO_PUBLIC_KEY + ':')
                         }
                     });
-                    
+
                     const data = await response.json();
                     const status = data.data.attributes.status;
-                    
+
                     if (status === 'chargeable' || status === 'paid') {
-                        // Find and update order in Firebase
                         const ordersQuery = query(
                             collection(db, 'orders'),
                             where('referenceNumber', '==', pendingOrder.referenceNumber)
                         );
                         const ordersSnapshot = await getDocs(ordersQuery);
-                        
+
                         if (!ordersSnapshot.empty) {
                             const orderDoc = ordersSnapshot.docs[0];
                             const orderDocRef = doc(db, 'orders', orderDoc.id);
                             const orderData = orderDoc.data();
-                            
+
                             await updateDoc(orderDocRef, {
                                 paymentStatus: 'paid',
                                 status: 'pending',
                                 paidAt: Timestamp.now()
                             });
-                            
-                            // Update inventory
+
                             for (const item of orderData.items) {
                                 const inventoryRef = doc(db, 'inventory', item.inventoryId);
                                 const inventoryDoc = await getDoc(inventoryRef);
-                                
+
                                 if (inventoryDoc.exists()) {
                                     const currentStock = inventoryDoc.data().stock;
                                     const newStock = currentStock - item.quantity;
@@ -728,14 +804,13 @@ async function checkGCashPaymentStatus() {
                                     });
                                 }
                             }
-                            
-                            // Add to active orders
+
                             const updatedOrder = { id: orderDoc.id, ...orderData, paymentStatus: 'paid', status: 'pending' };
                             activeOrders.push(updatedOrder);
                             saveActiveOrders();
                             listenToOrder(orderDoc.id);
                             updateOrderStatusDisplay();
-                            
+
                             showNotification('✅ GCash payment successful! Order #' + pendingOrder.referenceNumber, 'success');
                         }
                     } else {
@@ -745,17 +820,16 @@ async function checkGCashPaymentStatus() {
                     console.error('Payment verification error:', error);
                     showNotification('Error verifying payment', 'error');
                 }
-                
+
                 sessionStorage.removeItem('pendingGCashOrder');
             } else if (paymentStatus === 'failed') {
-                // Delete pending order
                 try {
                     const ordersQuery = query(
                         collection(db, 'orders'),
                         where('referenceNumber', '==', pendingOrder.referenceNumber)
                     );
                     const ordersSnapshot = await getDocs(ordersQuery);
-                    
+
                     if (!ordersSnapshot.empty) {
                         const orderDoc = ordersSnapshot.docs[0];
                         await deleteDoc(doc(db, 'orders', orderDoc.id));
@@ -763,12 +837,11 @@ async function checkGCashPaymentStatus() {
                 } catch (error) {
                     console.error('Error deleting cancelled order:', error);
                 }
-                
+
                 sessionStorage.removeItem('pendingGCashOrder');
                 showNotification('❌ GCash payment cancelled', 'error');
             }
-            
-            // Clean URL
+
             window.history.replaceState({}, document.title, window.location.pathname + '?table=' + tableNumber);
         }
     }
@@ -777,20 +850,18 @@ async function checkGCashPaymentStatus() {
 // ============================================
 // PROCESS ORDER (UPDATED)
 // ============================================
-window.processOrder = async function() {
+window.processOrder = async function () {
     const total = parseFloat(document.getElementById('paymentTotal').value.replace('₱', ''));
-    
+
     if (selectedPaymentMethod === 'cash') {
-        // Cash payment - just create order
         await createOrder({
             paymentMethod: 'cash',
             amountPaid: 0,
             change: 0,
-            paymentStatus: 'pending' // Will pay at counter
+            paymentStatus: 'pending'
         });
-        
+
     } else if (selectedPaymentMethod === 'gcash') {
-        // GCash payment
         const orderData = {
             totalAmount: total,
             referenceNumber: 'JCR' + Date.now().toString().slice(-6),
@@ -804,7 +875,7 @@ window.processOrder = async function() {
                 inventoryId: item.id
             }))
         };
-        
+
         await createGCashPayment(orderData);
     }
 };
@@ -813,7 +884,6 @@ window.processOrder = async function() {
 // CREATE ORDER (UPDATED)
 // ============================================
 async function createOrder(paymentData) {
-    // Validate stock
     for (const cartItem of cart) {
         const menuItem = menuItems.find(m => m.id === cartItem.id);
         if (!menuItem || menuItem.stock < cartItem.quantity) {
@@ -821,10 +891,9 @@ async function createOrder(paymentData) {
             return;
         }
     }
-    
+
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    // Create order
+
     const order = {
         tableNumber: tableNumber,
         referenceNumber: 'JCR' + Date.now().toString().slice(-6),
@@ -834,7 +903,7 @@ async function createOrder(paymentData) {
             price: item.price,
             quantity: item.quantity,
             total: item.price * item.quantity,
-            inventoryId: item.id  // ✅ This is correct
+            inventoryId: item.id
         })),
         totalAmount: total,
         paymentMethod: paymentData.paymentMethod,
@@ -845,16 +914,15 @@ async function createOrder(paymentData) {
         timestamp: Timestamp.now(),
         queuePosition: await getNextQueuePosition()
     };
-    
+
     const docRef = await addDoc(collection(db, 'orders'), order);
     const newOrder = { id: docRef.id, ...order };
-    
-    // Update inventory for cash orders only
+
     if (paymentData.paymentMethod === 'cash') {
-        for (const item of order.items) {  // ✅ Changed from cartItem
-            const inventoryRef = doc(db, 'inventory', item.inventoryId);  // ✅ Use item.inventoryId
+        for (const item of order.items) {
+            const inventoryRef = doc(db, 'inventory', item.inventoryId);
             const inventoryDoc = await getDoc(inventoryRef);
-            
+
             if (inventoryDoc.exists()) {
                 const currentStock = inventoryDoc.data().stock;
                 const newStock = currentStock - item.quantity;
@@ -865,18 +933,16 @@ async function createOrder(paymentData) {
             }
         }
     }
-    
-    // Add to active orders
+
     activeOrders.push(newOrder);
     saveActiveOrders();
     listenToOrder(docRef.id);
-    
-    // Reset
+
     cart = [];
     updateCartDisplay();
     closePaymentModal();
     updateOrderStatusDisplay();
-    
+
     if (paymentData.paymentMethod === 'cash') {
         showNotification('Order placed successfully! Please pay at the counter.', 'success');
     } else {
@@ -898,4 +964,113 @@ async function getNextQueuePosition() {
         console.error('Error getting queue position:', error);
         return 1;
     }
+}
+
+// ============================================
+// FEEDBACK SYSTEM
+// ============================================
+let selectedRating = 0;
+
+window.openFeedbackModal = function () {
+    document.getElementById('feedbackModal').classList.add('active');
+    setupStarRating();
+};
+
+window.closeFeedbackModal = function () {
+    document.getElementById('feedbackModal').classList.remove('active');
+    resetFeedback();
+};
+
+function setupStarRating() {
+    const stars = document.querySelectorAll('.star');
+    const ratingText = document.getElementById('ratingText');
+
+    const ratingTexts = {
+        1: '⭐ Poor',
+        2: '⭐⭐ Fair',
+        3: '⭐⭐⭐ Good',
+        4: '⭐⭐⭐⭐ Very Good',
+        5: '⭐⭐⭐⭐⭐ Excellent!'
+    };
+
+    stars.forEach(star => {
+        star.addEventListener('click', function () {
+            selectedRating = parseInt(this.dataset.rating);
+
+            stars.forEach(s => {
+                const starRating = parseInt(s.dataset.rating);
+                if (starRating <= selectedRating) {
+                    s.classList.add('active');
+                } else {
+                    s.classList.remove('active');
+                }
+            });
+
+            ratingText.textContent = ratingTexts[selectedRating];
+            ratingText.style.color = selectedRating >= 4 ? '#28a745' : selectedRating >= 3 ? '#ffc107' : '#dc3545';
+        });
+
+        star.addEventListener('mouseenter', function () {
+            const hoverRating = parseInt(this.dataset.rating);
+            stars.forEach(s => {
+                const starRating = parseInt(s.dataset.rating);
+                if (starRating <= hoverRating) {
+                    s.style.opacity = '1';
+                    s.style.filter = 'grayscale(0%)';
+                }
+            });
+        });
+
+        star.addEventListener('mouseleave', function () {
+            stars.forEach(s => {
+                const starRating = parseInt(s.dataset.rating);
+                if (starRating <= selectedRating) {
+                    s.style.opacity = '1';
+                    s.style.filter = 'grayscale(0%)';
+                } else {
+                    s.style.opacity = '0.3';
+                    s.style.filter = 'grayscale(100%)';
+                }
+            });
+        });
+    });
+}
+
+window.submitFeedback = async function () {
+    if (selectedRating === 0) {
+        showNotification('Please select a rating', 'error');
+        return;
+    }
+
+    const comment = document.getElementById('feedbackComment').value.trim();
+
+    try {
+        const feedback = {
+            tableNumber: tableNumber,
+            rating: selectedRating,
+            comment: comment || '',
+            timestamp: Timestamp.now(),
+            date: new Date().toISOString()
+        };
+
+        await addDoc(collection(db, 'feedback'), feedback);
+
+        showNotification('Thank you for your feedback! 🙏', 'success');
+        closeFeedbackModal();
+
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+        showNotification('Failed to submit feedback', 'error');
+    }
+};
+
+function resetFeedback() {
+    selectedRating = 0;
+    document.querySelectorAll('.star').forEach(star => {
+        star.classList.remove('active');
+        star.style.opacity = '0.3';
+        star.style.filter = 'grayscale(100%)';
+    });
+    document.getElementById('ratingText').textContent = '';
+    document.getElementById('feedbackComment').value = '';
 }
