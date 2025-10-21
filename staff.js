@@ -19,6 +19,24 @@ const db = getFirestore(app);
 // Global variables
 let orders = [];
 let currentFilter = 'all';
+let currentStaffId = null;
+
+// ============================================
+// CHECK SESSION ON PAGE LOAD
+// ============================================
+window.addEventListener('DOMContentLoaded', function() {
+    const staffSession = sessionStorage.getItem('staffSession');
+    
+    if (staffSession) {
+        const sessionData = JSON.parse(staffSession);
+        currentStaffId = sessionData.staffId;
+        
+        // Auto-login if session exists
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('dashboard').classList.add('active');
+        initializeDashboard();
+    }
+});
 
 // ============================================
 // LOGIN
@@ -30,18 +48,32 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
 
     const usersSnapshot = await getDocs(collection(db, 'users'));
     let authenticated = false;
+    let staffName = '';
 
     usersSnapshot.forEach(doc => {
         const user = doc.data();
         if (user.username === staffId && user.password === password && user.role === 'staff') {
             authenticated = true;
+            staffName = user.name || staffId;
         }
     });
 
     if (authenticated) {
+        // Save to session storage
+        const sessionData = {
+            staffId: staffId,
+            staffName: staffName,
+            loginTime: new Date().toISOString(),
+            role: 'staff'
+        };
+        sessionStorage.setItem('staffSession', JSON.stringify(sessionData));
+        currentStaffId = staffId;
+        
         document.getElementById('loginContainer').style.display = 'none';
         document.getElementById('dashboard').classList.add('active');
         await initializeDashboard();
+        
+        showNotification(`Welcome back, ${staffName}!`, 'success');
     } else {
         showError('Invalid staff ID or password!');
     }
@@ -55,45 +87,36 @@ function showError(message) {
 }
 
 window.logout = function () {
+    // Clear session storage
+    sessionStorage.removeItem('staffSession');
+    currentStaffId = null;
+    
     document.getElementById('dashboard').classList.remove('active');
     document.getElementById('loginContainer').style.display = 'flex';
     document.getElementById('staffId').value = '';
     document.getElementById('password').value = '';
+    
+    showNotification('Logged out successfully!', 'info');
 };
 
 // ============================================
 // INITIALIZE DASHBOARD
 // ============================================
 async function initializeDashboard() {
+    // Display staff name in header
+    const staffSession = sessionStorage.getItem('staffSession');
+    if (staffSession) {
+        const sessionData = JSON.parse(staffSession);
+        const welcomeMsg = document.getElementById('staffWelcome');
+        if (welcomeMsg) {
+            welcomeMsg.textContent = `Welcome, ${sessionData.staffName || sessionData.staffId}`;
+        }
+    }
+    
     await loadOrders();
     updateStats();
     setupFilters();
     setupRealtimeListeners();
-}
-
-function setupFilters() {
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            currentFilter = this.getAttribute('data-status');
-            renderOrders();
-            updateFilterCounts();
-        });
-    });
-    updateFilterCounts();
-}
-
-function updateFilterCounts() {
-    const allCount = orders.length;
-    const pendingCount = orders.filter(o => o.status === 'pending').length;
-    const preparingCount = orders.filter(o => o.status === 'preparing').length;
-    const readyCount = orders.filter(o => o.status === 'ready').length;
-
-    document.querySelector('[data-status="all"]').textContent = `All Orders (${allCount})`;
-    document.querySelector('[data-status="pending"]').textContent = `Pending (${pendingCount})`;
-    document.querySelector('[data-status="preparing"]').textContent = `Preparing (${preparingCount})`;
-    document.querySelector('[data-status="ready"]').textContent = `Ready (${readyCount})`;
 }
 
 // ============================================
@@ -157,6 +180,16 @@ function createOrderElement(order) {
         </div>
     `).join('');
 
+    // Payment status badge
+    let paymentBadge = '';
+    if (order.paymentMethod === 'gcash') {
+        paymentBadge = '<span class="payment-badge payment-gcash">💙 PAID - GCASH</span>';
+    } else if (order.paymentMethod === 'cash' && order.paymentStatus === 'paid') {
+        paymentBadge = '<span class="payment-badge payment-cash-paid">💵 PAID - CASH</span>';
+    } else if (order.paymentMethod === 'cash' && order.paymentStatus === 'pending') {
+        paymentBadge = '<span class="payment-badge payment-cash-pending">⏳ UNPAID - Pay at Counter</span>';
+    }
+
     div.innerHTML = `
         <div class="order-header">
             <div class="order-number">Table ${order.tableNumber}</div>
@@ -167,8 +200,11 @@ function createOrderElement(order) {
             Ref: ${order.referenceNumber} | Queue: #${order.queuePosition || '-'}
         </div>
         
-        <div class="status-badge status-${order.status}">
-            ${getStatusText(order.status)}
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+            <div class="status-badge status-${order.status}">
+                ${getStatusText(order.status)}
+            </div>
+            ${paymentBadge}
         </div>
         
         <div class="order-items">
@@ -199,17 +235,42 @@ function getStatusText(status) {
 }
 
 function getActionButtons(order) {
+    let buttons = '';
+    
+    // Payment status button (for unpaid cash orders)
+    if (order.paymentMethod === 'cash' && order.paymentStatus === 'pending') {
+        buttons += `<button class="action-btn btn-mark-paid" onclick="markAsPaid('${order.id}')">💵 Mark as Paid</button>`;
+    }
+    
+    // Order status buttons
     switch (order.status) {
         case 'pending':
-            return `<button class="action-btn btn-accept" onclick="updateOrderStatus('${order.id}', 'preparing')">👨‍🍳 Start Preparing</button>`;
+            buttons += `<button class="action-btn btn-accept" onclick="updateOrderStatus('${order.id}', 'preparing')">👨‍🍳 Start Preparing</button>`;
+            break;
         case 'preparing':
-            return `<button class="action-btn btn-ready" onclick="updateOrderStatus('${order.id}', 'ready')">✅ Mark as Ready</button>`;
+            buttons += `<button class="action-btn btn-ready" onclick="updateOrderStatus('${order.id}', 'ready')">✅ Mark as Ready</button>`;
+            break;
         case 'ready':
-            return `<button class="action-btn btn-complete" onclick="updateOrderStatus('${order.id}', 'completed')">🎉 Complete Order</button>`;
-        default:
-            return '';
+            buttons += `<button class="action-btn btn-complete" onclick="updateOrderStatus('${order.id}', 'completed')">🎉 Complete Order</button>`;
+            break;
     }
+    
+    return buttons;
 }
+
+// ============================================
+// MARK AS PAID (for cash orders)
+// ============================================
+window.markAsPaid = async function(orderId) {
+    const orderRef = doc(db, 'orders', orderId);
+    
+    await updateDoc(orderRef, {
+        paymentStatus: 'paid',
+        paidAt: new Date()
+    });
+    
+    showNotification('Order marked as paid!', 'success');
+};
 
 // ============================================
 // UPDATE ORDER STATUS
@@ -291,12 +352,18 @@ function updatePrepQueue() {
         const orderTime = order.timestamp.toDate ? order.timestamp.toDate() : new Date(order.timestamp);
         const prepTime = getTimeAgo(orderTime);
         const itemsText = order.items.map(item => `${item.name} (×${item.quantity})`).join(', ');
+        
+        const paymentIcon = order.paymentMethod === 'gcash' ? '💙' : '💵';
+        const paymentStatus = order.paymentStatus === 'paid' ? '✅' : '⏳';
 
         const prepItem = document.createElement('div');
         prepItem.className = 'prep-item';
         prepItem.innerHTML = `
             <div class="prep-info">
-                <div class="prep-order-number">Table ${order.tableNumber} - Ref: ${order.referenceNumber}</div>
+                <div class="prep-order-number">
+                    Table ${order.tableNumber} - Ref: ${order.referenceNumber} 
+                    <span style="font-size: 0.9rem;">${paymentIcon} ${paymentStatus}</span>
+                </div>
                 <div class="prep-items-list">${itemsText}</div>
             </div>
             <div class="prep-time">${prepTime}</div>

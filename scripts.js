@@ -11,7 +11,10 @@ import {
     where, 
     orderBy,
     Timestamp,
-    updateDoc
+    updateDoc,
+    setDoc,      
+    getDoc,      
+    deleteDoc
 } from 'https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js';
 
 // Initialize Firebase
@@ -107,6 +110,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadMenuItems('all-meals');
     updateCartDisplay();
     setupRealtimeMenuListener();
+    
+    // Check for GCash payment redirect
+    await checkGCashPaymentStatus();
 });
 
 // ============================================
@@ -166,20 +172,24 @@ function setupRealtimeMenuListener() {
 // ============================================
 async function loadCategories() {
     const grid = document.getElementById('categoriesGrid');
-    const container = document.getElementById('categoriesContainer');
     
     const categoriesSnapshot = await getDocs(collection(db, 'categories'));
     const categories = [];
     categoriesSnapshot.forEach(doc => categories.push({ id: doc.id, ...doc.data() }));
 
-    container.style.display = categories.length === 0 ? 'none' : 'block';
-    if (categories.length === 0) return;
+    if (categories.length === 0) {
+        grid.innerHTML = '<div class="empty-state"><p>No categories available</p></div>';
+        return;
+    }
     
     grid.innerHTML = '';
     categories.forEach(category => {
         const btn = document.createElement('div');
         btn.className = 'category-btn';
-        btn.onclick = () => loadMenuItems(category.id);
+        btn.onclick = () => {
+            loadMenuItems(category.id);
+            switchTab('all-meals'); // Switch to All Meals tab when category is clicked
+        };
         btn.innerHTML = `
             <img src="${category.image}" alt="${category.name}">
             <div style="font-weight: bold;">${category.name}</div>
@@ -277,6 +287,34 @@ function createMenuItemElement(item) {
 }
 
 // ============================================
+// TAB SWITCHING
+// ============================================
+window.switchTab = function(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+    
+    // Update tab panes
+    document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+    document.getElementById(`pane-${tabName}`).classList.add('active');
+    
+    // Special handling for categories tab
+    if (tabName === 'categories' && document.getElementById('categoriesGrid').innerHTML.includes('loading')) {
+        loadCategories();
+    }
+};
+
+// ============================================
+// UPDATE CART BADGE
+// ============================================
+function updateCartBadge() {
+    const badge = document.getElementById('cartBadge');
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    badge.textContent = totalItems;
+    badge.style.display = totalItems > 0 ? 'flex' : 'none';
+}
+
+// ============================================
 // CART FUNCTIONS
 // ============================================
 function updateCartDisplay() {
@@ -286,6 +324,7 @@ function updateCartDisplay() {
     if (cart.length === 0) {
         cartItems.innerHTML = '<div class="empty-state"><p>Your cart is empty</p></div>';
         cartTotal.textContent = 'Total: ₱0.00';
+        updateCartBadge(); // Add this line
         return;
     }
 
@@ -315,6 +354,7 @@ function updateCartDisplay() {
     });
 
     cartTotal.textContent = `Total: ₱${total.toFixed(2)}`;
+    updateCartBadge(); // Add this line
 }
 
 window.updateCartQuantity = function(index, change) {
@@ -383,117 +423,7 @@ window.addToCart = function(itemId, itemName, itemPrice, maxStock) {
     showNotification('Added to cart!', 'success');
 };
 
-// ============================================
-// PAYMENT MODAL
-// ============================================
-window.openPaymentModal = function() {
-    if (cart.length === 0) {
-        showNotification('Your cart is empty!', 'error');
-        return;
-    }
 
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    document.getElementById('paymentTotal').value = `₱${total.toFixed(2)}`;
-    document.getElementById('amountPaid').value = '';
-    document.getElementById('changeAmount').value = '';
-    document.getElementById('paymentModal').classList.add('active');
-};
-
-window.closePaymentModal = function() {
-    document.getElementById('paymentModal').classList.remove('active');
-};
-
-document.getElementById('amountPaid').addEventListener('input', function() {
-    const total = parseFloat(document.getElementById('paymentTotal').value.replace('₱', ''));
-    const paid = parseFloat(this.value) || 0;
-    const change = paid - total;
-    const changeField = document.getElementById('changeAmount');
-
-    if (change >= 0) {
-        changeField.value = `₱${change.toFixed(2)}`;
-        changeField.style.color = '#28a745';
-    } else {
-        changeField.value = 'Insufficient amount';
-        changeField.style.color = '#dc3545';
-    }
-});
-
-// ============================================
-// PROCESS ORDER
-// ============================================
-window.processOrder = async function() {
-    const total = parseFloat(document.getElementById('paymentTotal').value.replace('₱', ''));
-    const paid = parseFloat(document.getElementById('amountPaid').value) || 0;
-
-    if (paid < total) {
-        showNotification('Insufficient payment!', 'error');
-        return;
-    }
-
-    // Validate stock availability
-    for (const cartItem of cart) {
-        const menuItem = menuItems.find(m => m.id === cartItem.id);
-        if (!menuItem || menuItem.stock < cartItem.quantity) {
-            showNotification(`Not enough stock for ${cartItem.name}`, 'error');
-            return;
-        }
-    }
-
-    // Create order
-    const order = {
-        tableNumber: tableNumber,
-        referenceNumber: 'JCR' + Date.now().toString().slice(-6),
-        items: cart.map(item => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            total: item.price * item.quantity,
-            inventoryId: item.id
-        })),
-        totalAmount: total,
-        amountPaid: paid,
-        change: paid - total,
-        status: 'pending',
-        timestamp: Timestamp.now(),
-        queuePosition: await getNextQueuePosition()
-    };
-
-    const docRef = await addDoc(collection(db, 'orders'), order);
-    const newOrder = { id: docRef.id, ...order };
-
-    // Add to active orders and listen
-    activeOrders.push(newOrder);
-    saveActiveOrders();
-    listenToOrder(docRef.id);
-
-    // Update inventory
-    for (const cartItem of cart) {
-        const menuItem = menuItems.find(m => m.id === cartItem.id);
-        if (menuItem) {
-            const newStock = menuItem.stock - cartItem.quantity;
-            await updateDoc(doc(db, 'inventory', cartItem.id), {
-                stock: newStock,
-                status: newStock > 0 ? 'available' : 'unavailable'
-            });
-        }
-    }
-
-    // Reset cart and close modal
-    cart = [];
-    updateCartDisplay();
-    closePaymentModal();
-    updateOrderStatusDisplay();
-    showNotification('Order placed successfully!', 'success');
-};
-
-async function getNextQueuePosition() {
-    const ordersSnapshot = await getDocs(query(
-        collection(db, 'orders'),
-        where('status', 'in', ['pending', 'preparing'])
-    ));
-    return ordersSnapshot.size + 1;
-}
 
 // ============================================
 // ORDER STATUS DISPLAY
@@ -505,7 +435,7 @@ function updateOrderStatusDisplay() {
     const displayOrders = activeOrders.filter(o => o.status !== 'completed');
 
     if (displayOrders.length === 0) {
-        orderStatus.classList.remove('active');
+        orderStatus.innerHTML = '<div class="empty-state"><p>No active orders</p></div>';
         return;
     }
 
@@ -518,8 +448,8 @@ function updateOrderStatusDisplay() {
         ).join('');
 
         return `
-            <div style="background: #fff; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                <div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; color: #BA8E4A;">
+            <div style="background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 20px; padding: 20px; margin-bottom: 15px;">
+                <div style="font-weight: bold; font-size: 1.2rem; margin-bottom: 10px; color: #BA8E4A;">
                     Table ${order.tableNumber} - Ref #${order.referenceNumber}
                 </div>
                 
@@ -529,18 +459,17 @@ function updateOrderStatusDisplay() {
                 
                 <div style="text-align: left;">
                     ${itemsList}
-                    <hr style="margin: 15px 0;">
-                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                    <hr style="margin: 15px 0; border: none; border-top: 2px solid #e0e0e0;">
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem;">
                         <span>Total:</span>
-                        <span>₱${order.totalAmount.toFixed(2)}</span>
+                        <span style="color: #BA8E4A;">₱${order.totalAmount.toFixed(2)}</span>
                     </div>
                 </div>
             </div>
         `;
     }).join('');
 
-    orderStatus.innerHTML = `<div style="max-height: 400px; overflow-y: auto;">${ordersHTML}</div>`;
-    orderStatus.classList.add('active');
+    orderStatus.innerHTML = ordersHTML;
 }
 
 function getStatusText(status) {
@@ -584,4 +513,389 @@ function showNotification(message, type = 'info') {
         notification.style.transform = 'translateX(100%)';
         setTimeout(() => notification.remove(), 300);
     }, 3000);
+}
+// ============================================
+// PAYMONGO CONFIGURATION
+// ============================================
+const PAYMONGO_PUBLIC_KEY = 'pk_test_EUwUco4SbCdTki5To8xLyuVv';
+
+// ============================================
+// PAYMENT METHOD SELECTION
+// ============================================
+let selectedPaymentMethod = 'cash';
+
+window.selectPaymentMethod = function(method) {
+    selectedPaymentMethod = method;
+    
+    // Update button states
+    document.getElementById('cashBtn').classList.toggle('active', method === 'cash');
+    document.getElementById('gcashBtn').classList.toggle('active', method === 'gcash');
+    
+    // Toggle payment fields
+    document.getElementById('cashPaymentFields').style.display = method === 'cash' ? 'block' : 'none';
+    document.getElementById('gcashPaymentFields').style.display = method === 'gcash' ? 'block' : 'none';
+    
+    // Update button text
+    const btn = document.getElementById('processOrderBtn');
+    btn.textContent = method === 'cash' ? 'Confirm Order' : 'Pay with GCash';
+};
+
+// ============================================
+// PAYMENT MODAL
+// ============================================
+window.openPaymentModal = function() {
+    if (cart.length === 0) {
+        showNotification('Your cart is empty!', 'error');
+        return;
+    }
+
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    document.getElementById('paymentTotal').value = `₱${total.toFixed(2)}`;
+    document.getElementById('paymentModal').classList.add('active');
+    
+    // Reset to cash payment
+    selectPaymentMethod('cash');
+};
+
+window.closePaymentModal = function() {
+    document.getElementById('paymentModal').classList.remove('active');
+};
+
+// ============================================
+// PAYMONGO GCASH INTEGRATION
+// ============================================
+async function createGCashPayment(orderData) {
+    try {
+        showNotification('Setting up GCash payment...', 'info');
+        
+        const amount = Math.round(orderData.totalAmount * 100);
+        
+        const response = await fetch('https://api.paymongo.com/v1/sources', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Basic ' + btoa(PAYMONGO_PUBLIC_KEY + ':')
+            },
+            body: JSON.stringify({
+                data: {
+                    attributes: {
+                        type: 'gcash',
+                        amount: amount,
+                        currency: 'PHP',
+                        redirect: {
+                            success: window.location.href.split('&payment')[0] + '&payment=success&order=' + orderData.referenceNumber,
+                            failed: window.location.href.split('&payment')[0] + '&payment=failed'
+                        }
+                    }
+                }
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.errors?.[0]?.detail || 'GCash payment setup failed');
+        }
+        
+        const sourceId = data.data.id;
+        const checkoutUrl = data.data.attributes.redirect.checkout_url;
+        
+        await savePendingGCashOrder(orderData, sourceId);
+        closePaymentModal();
+        
+        // Open in centered pop-up window
+        const width = 500;
+        const height = 700;
+        const left = (screen.width - width) / 2;
+        const top = (screen.height - height) / 2;
+        
+        const popup = window.open(
+            checkoutUrl,
+            'GCash Payment',
+            `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=yes,menubar=no,scrollbars=yes,resizable=yes,status=yes`
+        );
+        
+        if (popup) {
+            showNotification('Complete your payment in the popup window', 'info');
+            
+            // Monitor popup
+            const checkPopup = setInterval(() => {
+                if (popup.closed) {
+                    clearInterval(checkPopup);
+                    showNotification('Checking payment status...', 'info');
+                    // Reload to check payment status
+                    setTimeout(() => location.reload(), 1000);
+                }
+            }, 500);
+        } else {
+            // Popup blocked - fallback to redirect
+            alert('Please allow pop-ups for this site to complete payment');
+            window.location.href = checkoutUrl;
+        }
+        
+        return null;
+        
+    } catch (error) {
+        console.error('GCash Payment Error:', error);
+        showNotification('GCash payment setup failed: ' + error.message, 'error');
+        return { success: false };
+    }
+}
+
+async function savePendingGCashOrder(orderData, sourceId) {
+    const order = {
+        tableNumber: orderData.tableNumber,
+        referenceNumber: orderData.referenceNumber,
+        items: orderData.items,
+        totalAmount: orderData.totalAmount,
+        paymentMethod: 'gcash',
+        paymentSourceId: sourceId,
+        paymentStatus: 'pending',
+        status: 'pending_payment',
+        timestamp: Timestamp.now(),
+        queuePosition: await getNextQueuePosition()
+    };
+    
+    // Save to Firebase
+    await addDoc(collection(db, 'orders'), order);
+    
+    // Store in session for verification after redirect
+    sessionStorage.setItem('pendingGCashOrder', JSON.stringify({
+        referenceNumber: orderData.referenceNumber,
+        sourceId: sourceId,
+        items: orderData.items
+    }));
+}
+
+// ============================================
+// CHECK GCASH PAYMENT STATUS ON PAGE LOAD
+// ============================================
+async function checkGCashPaymentStatus() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    const orderRef = urlParams.get('order');
+    
+    if (paymentStatus && orderRef) {
+        const pending = sessionStorage.getItem('pendingGCashOrder');
+        
+        if (pending) {
+            const pendingOrder = JSON.parse(pending);
+            
+            if (paymentStatus === 'success') {
+                // Verify payment with PayMongo
+                try {
+                    showNotification('Verifying payment...', 'info');
+                    
+                    const response = await fetch(`https://api.paymongo.com/v1/sources/${pendingOrder.sourceId}`, {
+                        headers: {
+                            'Authorization': 'Basic ' + btoa(PAYMONGO_PUBLIC_KEY + ':')
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    const status = data.data.attributes.status;
+                    
+                    if (status === 'chargeable' || status === 'paid') {
+                        // Find and update order in Firebase
+                        const ordersQuery = query(
+                            collection(db, 'orders'),
+                            where('referenceNumber', '==', pendingOrder.referenceNumber)
+                        );
+                        const ordersSnapshot = await getDocs(ordersQuery);
+                        
+                        if (!ordersSnapshot.empty) {
+                            const orderDoc = ordersSnapshot.docs[0];
+                            const orderDocRef = doc(db, 'orders', orderDoc.id);
+                            const orderData = orderDoc.data();
+                            
+                            await updateDoc(orderDocRef, {
+                                paymentStatus: 'paid',
+                                status: 'pending',
+                                paidAt: Timestamp.now()
+                            });
+                            
+                            // Update inventory
+                            for (const item of orderData.items) {
+                                const inventoryRef = doc(db, 'inventory', item.inventoryId);
+                                const inventoryDoc = await getDoc(inventoryRef);
+                                
+                                if (inventoryDoc.exists()) {
+                                    const currentStock = inventoryDoc.data().stock;
+                                    const newStock = currentStock - item.quantity;
+                                    await updateDoc(inventoryRef, {
+                                        stock: newStock,
+                                        status: newStock > 0 ? 'available' : 'unavailable'
+                                    });
+                                }
+                            }
+                            
+                            // Add to active orders
+                            const updatedOrder = { id: orderDoc.id, ...orderData, paymentStatus: 'paid', status: 'pending' };
+                            activeOrders.push(updatedOrder);
+                            saveActiveOrders();
+                            listenToOrder(orderDoc.id);
+                            updateOrderStatusDisplay();
+                            
+                            showNotification('✅ GCash payment successful! Order #' + pendingOrder.referenceNumber, 'success');
+                        }
+                    } else {
+                        showNotification('❌ Payment verification failed. Please contact staff.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Payment verification error:', error);
+                    showNotification('Error verifying payment', 'error');
+                }
+                
+                sessionStorage.removeItem('pendingGCashOrder');
+            } else if (paymentStatus === 'failed') {
+                // Delete pending order
+                try {
+                    const ordersQuery = query(
+                        collection(db, 'orders'),
+                        where('referenceNumber', '==', pendingOrder.referenceNumber)
+                    );
+                    const ordersSnapshot = await getDocs(ordersQuery);
+                    
+                    if (!ordersSnapshot.empty) {
+                        const orderDoc = ordersSnapshot.docs[0];
+                        await deleteDoc(doc(db, 'orders', orderDoc.id));
+                    }
+                } catch (error) {
+                    console.error('Error deleting cancelled order:', error);
+                }
+                
+                sessionStorage.removeItem('pendingGCashOrder');
+                showNotification('❌ GCash payment cancelled', 'error');
+            }
+            
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname + '?table=' + tableNumber);
+        }
+    }
+}
+
+// ============================================
+// PROCESS ORDER (UPDATED)
+// ============================================
+window.processOrder = async function() {
+    const total = parseFloat(document.getElementById('paymentTotal').value.replace('₱', ''));
+    
+    if (selectedPaymentMethod === 'cash') {
+        // Cash payment - just create order
+        await createOrder({
+            paymentMethod: 'cash',
+            amountPaid: 0,
+            change: 0,
+            paymentStatus: 'pending' // Will pay at counter
+        });
+        
+    } else if (selectedPaymentMethod === 'gcash') {
+        // GCash payment
+        const orderData = {
+            totalAmount: total,
+            referenceNumber: 'JCR' + Date.now().toString().slice(-6),
+            tableNumber: tableNumber,
+            items: cart.map(item => ({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity,
+                total: item.price * item.quantity,
+                inventoryId: item.id
+            }))
+        };
+        
+        await createGCashPayment(orderData);
+    }
+};
+
+// ============================================
+// CREATE ORDER (UPDATED)
+// ============================================
+async function createOrder(paymentData) {
+    // Validate stock
+    for (const cartItem of cart) {
+        const menuItem = menuItems.find(m => m.id === cartItem.id);
+        if (!menuItem || menuItem.stock < cartItem.quantity) {
+            showNotification(`Not enough stock for ${cartItem.name}`, 'error');
+            return;
+        }
+    }
+    
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // Create order
+    const order = {
+        tableNumber: tableNumber,
+        referenceNumber: 'JCR' + Date.now().toString().slice(-6),
+        items: cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            total: item.price * item.quantity,
+            inventoryId: item.id  // ✅ This is correct
+        })),
+        totalAmount: total,
+        paymentMethod: paymentData.paymentMethod,
+        paymentStatus: paymentData.paymentStatus || 'completed',
+        amountPaid: paymentData.amountPaid,
+        change: paymentData.change,
+        status: 'pending',
+        timestamp: Timestamp.now(),
+        queuePosition: await getNextQueuePosition()
+    };
+    
+    const docRef = await addDoc(collection(db, 'orders'), order);
+    const newOrder = { id: docRef.id, ...order };
+    
+    // Update inventory for cash orders only
+    if (paymentData.paymentMethod === 'cash') {
+        for (const item of order.items) {  // ✅ Changed from cartItem
+            const inventoryRef = doc(db, 'inventory', item.inventoryId);  // ✅ Use item.inventoryId
+            const inventoryDoc = await getDoc(inventoryRef);
+            
+            if (inventoryDoc.exists()) {
+                const currentStock = inventoryDoc.data().stock;
+                const newStock = currentStock - item.quantity;
+                await updateDoc(inventoryRef, {
+                    stock: newStock,
+                    status: newStock > 0 ? 'available' : 'unavailable'
+                });
+            }
+        }
+    }
+    
+    // Add to active orders
+    activeOrders.push(newOrder);
+    saveActiveOrders();
+    listenToOrder(docRef.id);
+    
+    // Reset
+    cart = [];
+    updateCartDisplay();
+    closePaymentModal();
+    updateOrderStatusDisplay();
+    
+    if (paymentData.paymentMethod === 'cash') {
+        showNotification('Order placed successfully! Please pay at the counter.', 'success');
+    } else {
+        showNotification('Order placed successfully!', 'success');
+    }
+}
+
+// ============================================
+// GET NEXT QUEUE POSITION
+// ============================================
+async function getNextQueuePosition() {
+    try {
+        const ordersSnapshot = await getDocs(query(
+            collection(db, 'orders'),
+            where('status', 'in', ['pending', 'preparing', 'pending_payment'])
+        ));
+        return ordersSnapshot.size + 1;
+    } catch (error) {
+        console.error('Error getting queue position:', error);
+        return 1;
+    }
 }
