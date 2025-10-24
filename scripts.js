@@ -21,9 +21,20 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let cart = [];
+let selectedOrderType = 'dine-in';
 let activeOrders = [];
 let tableNumber = null;
 let menuItems = [];
+let cafeCategories = [];
+let cafeItems = [];
+let selectedSizes = {}; // Track selected size per item: { itemId: sizeKey }
+
+window.selectOrderType = function (type) {
+    selectedOrderType = type;
+
+    document.getElementById('dineInBtn').classList.toggle('active', type === 'dine-in');
+    document.getElementById('takeOutBtn').classList.toggle('active', type === 'take-out');
+};
 
 // ============================================
 // TABLE NUMBER SETUP WITH VALIDATION
@@ -125,14 +136,13 @@ function showInvalidTablePage() {
 // ACTIVE ORDERS - SAVE/LOAD
 // ============================================
 function saveActiveOrders() {
-    const ordersToSave = activeOrders.filter(o => o.status !== 'completed');
-    sessionStorage.setItem('activeOrders', JSON.stringify(ordersToSave));
+    sessionStorage.setItem('activeOrders', JSON.stringify(activeOrders));
 }
 
 function loadActiveOrders() {
     const saved = sessionStorage.getItem('activeOrders');
     if (saved) {
-        activeOrders = JSON.parse(saved).filter(o => o.status !== 'completed');
+        activeOrders = JSON.parse(saved); // Load all orders
         activeOrders.forEach(order => listenToOrder(order.id));
         updateOrderStatusDisplay();
     }
@@ -158,7 +168,6 @@ function listenToOrder(orderId) {
 
         if (oldStatus && oldStatus !== updatedOrder.status) showStatusNotification(updatedOrder);
 
-        if (updatedOrder.status === 'completed') setTimeout(() => removeCompletedOrder(orderId), 5000);
     });
 }
 
@@ -179,6 +188,284 @@ function removeCompletedOrder(orderId) {
 }
 
 // ============================================
+// CAFE MENU FUNCTIONS
+// ============================================
+async function loadCafeCategories() {
+    try {
+        const snapshot = await getDocs(collection(db, 'cafe_categories'));
+        cafeCategories = [];
+        snapshot.forEach(doc => {
+            cafeCategories.push({ id: doc.id, ...doc.data() });
+        });
+        
+        // Populate cafe category filter
+        const cafeFilter = document.getElementById('cafeCategoryFilter');
+        if (cafeFilter) {
+            cafeFilter.innerHTML = '<option value="all">All Cafe Items</option>';
+            cafeCategories.forEach(cat => {
+                cafeFilter.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+            });
+        }
+    } catch (error) {
+        console.error('Error loading cafe categories:', error);
+    }
+}
+
+async function loadCafeItems() {
+    try {
+        const snapshot = await getDocs(query(
+            collection(db, 'cafe_inventory'),
+            where('showInMenu', '==', true),
+            where('status', '==', 'available')
+        ));
+        
+        cafeItems = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.stock > 0) {
+                cafeItems.push({ id: doc.id, ...data });
+            }
+        });
+        
+        displayCafeItems('all');
+    } catch (error) {
+        console.error('Error loading cafe items:', error);
+        document.getElementById('cafeMenuContainer').innerHTML = 
+            '<div class="empty-state"><p>Error loading cafe menu</p></div>';
+    }
+}
+
+function displayCafeItems(categoryFilter) {
+    const container = document.getElementById('cafeMenuContainer');
+    
+    let filteredItems = categoryFilter === 'all' 
+        ? cafeItems 
+        : cafeItems.filter(item => item.category === categoryFilter);
+    
+    if (filteredItems.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No cafe items available</p></div>';
+        return;
+    }
+    
+    // Group items by category
+    const groupedItems = {};
+    filteredItems.forEach(item => {
+        const category = item.categoryName || item.category || 'Other';
+        if (!groupedItems[category]) {
+            groupedItems[category] = [];
+        }
+        groupedItems[category].push(item);
+    });
+    
+    // Build HTML with category headers
+    let html = '';
+    Object.keys(groupedItems).forEach(categoryName => {
+        html += `<div class="cafe-category-header">${categoryName}</div>`;
+        html += '<div class="menu-grid">';
+        
+        groupedItems[categoryName].forEach(item => {
+            html += createCafeItemElement(item);
+        });
+        
+        html += '</div>';
+    });
+    
+    container.innerHTML = html;
+}
+
+function createCafeItemElement(item) {
+    const hasSizes = item.sizes && Object.keys(item.sizes).length > 0;
+    const defaultSize = hasSizes ? Object.keys(item.sizes)[0] : null;
+    const defaultPrice = hasSizes ? item.sizes[defaultSize] : item.price;
+    
+    // Initialize selected size if not set
+    if (hasSizes && !selectedSizes[item.id]) {
+        selectedSizes[item.id] = defaultSize;
+    }
+    
+    let sizesHTML = '';
+    if (hasSizes) {
+        sizesHTML = '<div class="size-selector">';
+        Object.keys(item.sizes).forEach(sizeKey => {
+            const isActive = selectedSizes[item.id] === sizeKey;
+            sizesHTML += `
+                <button class="size-btn ${isActive ? 'active' : ''}" 
+                        onclick="selectCafeSize('${item.id}', '${sizeKey}')">
+                    ${sizeKey.toUpperCase()}
+                    <span class="size-price-label">₱${parseFloat(item.sizes[sizeKey]).toFixed(2)}</span>
+                </button>
+            `;
+        });
+        sizesHTML += '</div>';
+    }
+    
+    return `
+        <div class="menu-item">
+            <img src="${item.image || 'https://via.placeholder.com/300x150?text=' + encodeURIComponent(item.name)}"
+                 alt="${item.name}">
+            <h4>${item.name}</h4>
+            <div class="price" id="cafe-price-${item.id}">₱${parseFloat(defaultPrice).toFixed(2)}</div>
+            <div style="font-size: 0.85rem; color: ${item.stock < 10 ? '#dc3545' : '#666'}; margin-bottom: 10px;">
+                ${item.stock} available
+            </div>
+            ${sizesHTML}
+            <div class="quantity-controls">
+                <button class="qty-btn" onclick="changeCafeQuantity('${item.id}', -1)">−</button>
+                <input type="number" class="qty-input" id="cafe-qty-${item.id}" value="1" min="1" max="${item.stock}">
+                <button class="qty-btn" onclick="changeCafeQuantity('${item.id}', 1)">+</button>
+            </div>
+            <button class="add-to-cart-btn" onclick="addCafeToCart('${item.id}')">
+                Add to Cart
+            </button>
+        </div>
+    `;
+}
+
+window.selectCafeSize = function(itemId, sizeKey) {
+    selectedSizes[itemId] = sizeKey;
+    
+    // Update UI
+    const item = cafeItems.find(i => i.id === itemId);
+    if (!item) return;
+    
+    // Update price display
+    const priceEl = document.getElementById(`cafe-price-${itemId}`);
+    if (priceEl) {
+        priceEl.textContent = `₱${parseFloat(item.sizes[sizeKey]).toFixed(2)}`;
+    }
+    
+    // Update active button
+    const container = priceEl.closest('.menu-item');
+    if (container) {
+        container.querySelectorAll('.size-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        container.querySelector(`.size-btn[onclick*="${sizeKey}"]`).classList.add('active');
+    }
+};
+
+window.changeCafeQuantity = function(itemId, change) {
+    const input = document.getElementById(`cafe-qty-${itemId}`);
+    if (!input) return;
+    
+    const currentValue = parseInt(input.value) || 1;
+    const max = parseInt(input.max) || 1;
+    const newValue = Math.max(1, Math.min(max, currentValue + change));
+    input.value = newValue;
+};
+
+window.addCafeToCart = function(itemId) {
+    const item = cafeItems.find(i => i.id === itemId);
+    if (!item) return;
+    
+    const quantityInput = document.getElementById(`cafe-qty-${itemId}`);
+    const quantity = parseInt(quantityInput.value) || 1;
+    
+    if (quantity > item.stock) {
+        showNotification(`Only ${item.stock} available`, 'error');
+        return;
+    }
+    
+    const hasSizes = item.sizes && Object.keys(item.sizes).length > 0;
+    const selectedSize = hasSizes ? selectedSizes[itemId] : null;
+    const price = hasSizes ? item.sizes[selectedSize] : item.price;
+    const itemName = hasSizes ? `${item.name} (${selectedSize.toUpperCase()})` : item.name;
+    
+    // Create unique cart ID for items with sizes
+    const cartId = hasSizes ? `${itemId}_${selectedSize}` : itemId;
+    
+    const existingItem = cart.find(cartItem => cartItem.cartId === cartId);
+    if (existingItem) {
+        const newTotal = existingItem.quantity + quantity;
+        if (newTotal <= item.stock) {
+            existingItem.quantity = newTotal;
+        } else {
+            showNotification(`Only ${item.stock} available`, 'error');
+            return;
+        }
+    } else {
+        cart.push({
+            cartId: cartId,
+            id: itemId,
+            name: itemName,
+            price: price,
+            quantity: quantity,
+            maxStock: item.stock,
+            size: selectedSize,
+            isCafe: true
+        });
+    }
+    
+    quantityInput.value = 1;
+    updateCartDisplay();
+    showNotification('Added to cart!', 'success');
+};
+
+window.filterCafeByCategory = function(categoryId) {
+    displayCafeItems(categoryId);
+};
+
+// Cafe Search
+document.addEventListener('DOMContentLoaded', function() {
+    const cafeSearch = document.getElementById('cafeSearchInput');
+    if (cafeSearch) {
+        cafeSearch.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            
+            if (!searchTerm) {
+                const currentCategory = document.getElementById('cafeCategoryFilter').value;
+                displayCafeItems(currentCategory);
+                return;
+            }
+            
+            const filteredItems = cafeItems.filter(item =>
+                item.name.toLowerCase().includes(searchTerm) ||
+                (item.category && item.category.toLowerCase().includes(searchTerm))
+            );
+            
+            const container = document.getElementById('cafeMenuContainer');
+            if (filteredItems.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No items found</p></div>';
+                return;
+            }
+            
+            let html = '<div class="menu-grid">';
+            filteredItems.forEach(item => {
+                html += createCafeItemElement(item);
+            });
+            html += '</div>';
+            
+            container.innerHTML = html;
+        });
+    }
+});
+
+// ============================================
+// UPDATE MEALS CATEGORY FILTER
+// ============================================
+async function loadMealsCategories() {
+    const categoriesSnapshot = await getDocs(collection(db, 'categories'));
+    const mealsCategories = [];
+    categoriesSnapshot.forEach(doc => {
+        mealsCategories.push({ id: doc.id, ...doc.data() });
+    });
+    
+    const filter = document.getElementById('mealsCategoryFilter');
+    if (filter) {
+        filter.innerHTML = '<option value="all-meals">All Meals</option>';
+        mealsCategories.forEach(cat => {
+            if (cat.id !== 'all-meals') {
+                filter.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+            }
+        });
+    }
+}
+
+window.filterMealsByCategory = function(categoryId) {
+    loadMenuItems(categoryId);
+};
+
+// ============================================
 // INITIALIZE APP
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
@@ -190,12 +477,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     loadActiveOrders();
     await loadCategories();
+    await loadMealsCategories(); // ADD THIS
+    await loadCafeCategories(); // ADD THIS
     await loadMenuItems('all-meals');
+    await loadCafeItems(); // ADD THIS
     updateCartDisplay();
     setupRealtimeMenuListener();
 
     await checkGCashPaymentStatus();
+    
+    const shouldSwitchToOrders = sessionStorage.getItem('switchToOrdersTab');
+    if (shouldSwitchToOrders === 'true') {
+        sessionStorage.removeItem('switchToOrdersTab');
+        setTimeout(() => {
+            switchTab('orders');
+        }, 1000);
+    }
 });
+
+
 
 // ============================================
 // SEARCH FUNCTIONALITY
@@ -247,6 +547,29 @@ function setupRealtimeMenuListener() {
         const currentCategory = document.getElementById('menuSectionTitle').dataset.currentCategory || 'all-meals';
         displayMenuItems(currentCategory);
     });
+    
+    // ADD CAFE REALTIME LISTENER
+    const cafeInventoryQuery = query(
+        collection(db, 'cafe_inventory'),
+        where('showInMenu', '==', true)
+    );
+    
+    onSnapshot(cafeInventoryQuery, (snapshot) => {
+        cafeItems = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.status === 'available' && data.stock > 0) {
+                cafeItems.push({ id: doc.id, ...data });
+            }
+        });
+        
+        // Refresh cafe menu if currently viewing it
+        const cafePane = document.getElementById('pane-cafe-menu');
+        if (cafePane && cafePane.classList.contains('active')) {
+            const currentFilter = document.getElementById('cafeCategoryFilter').value;
+            displayCafeItems(currentFilter);
+        }
+    });
 }
 
 // ============================================
@@ -254,6 +577,11 @@ function setupRealtimeMenuListener() {
 // ============================================
 async function loadCategories() {
     const grid = document.getElementById('categoriesGrid');
+    
+    // If grid doesn't exist, skip (it's optional in customer UI)
+    if (!grid) {
+        return;
+    }
 
     const categoriesSnapshot = await getDocs(collection(db, 'categories'));
     const categories = [];
@@ -367,17 +695,25 @@ function createMenuItemElement(item) {
 }
 
 // ============================================
-// TAB SWITCHING
+// TAB SWITCHING (FIXED WITH NULL CHECKS)
 // ============================================
 window.switchTab = function (tabName) {
+    const tabBtn = document.getElementById(`tab-${tabName}`);
+    const tabPane = document.getElementById(`pane-${tabName}`);
+    
+    if (!tabBtn || !tabPane) {
+        console.warn(`Tab elements not found for: ${tabName}`);
+        return;
+    }
+    
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(`tab-${tabName}`).classList.add('active');
+    tabBtn.classList.add('active');
 
     document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-    document.getElementById(`pane-${tabName}`).classList.add('active');
+    tabPane.classList.add('active');
 
-    if (tabName === 'categories' && document.getElementById('categoriesGrid').innerHTML.includes('loading')) {
-        loadCategories();
+    if (tabName === 'cafe-menu') {
+        loadCafeItems();
     }
 };
 
@@ -401,7 +737,7 @@ function updateCartDisplay() {
     if (cart.length === 0) {
         cartItems.innerHTML = '<div class="empty-state"><p>Your cart is empty</p></div>';
         cartTotal.textContent = 'Total: ₱0.00';
-        updateCartBadge(); // Add this line
+        updateCartBadge();
         return;
     }
 
@@ -436,8 +772,18 @@ function updateCartDisplay() {
 
 window.updateCartQuantity = function (index, change) {
     const item = cart[index];
-    const menuItem = menuItems.find(m => m.id === item.id);
-    const maxStock = menuItem ? menuItem.stock : item.maxStock;
+    
+    // Find max stock based on item type
+    let maxStock = item.maxStock;
+    
+    if (item.isCafe) {
+        const cafeItem = cafeItems.find(c => c.id === item.id);
+        maxStock = cafeItem ? cafeItem.stock : item.maxStock;
+    } else {
+        const menuItem = menuItems.find(m => m.id === item.id);
+        maxStock = menuItem ? menuItem.stock : item.maxStock;
+    }
+    
     const newQuantity = item.quantity + change;
 
     if (newQuantity <= 0) {
@@ -509,10 +855,11 @@ function updateOrderStatusDisplay() {
     const orderStatus = document.getElementById('orderStatus');
     if (!orderStatus) return;
 
-    const displayOrders = activeOrders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
+    // Show all orders now (no filtering)
+    const displayOrders = activeOrders;
 
     if (displayOrders.length === 0) {
-        orderStatus.innerHTML = '<div class="empty-state"><p>No active orders</p></div>';
+        orderStatus.innerHTML = '<div class="empty-state"><p>No orders yet</p></div>';
         return;
     }
 
@@ -531,6 +878,15 @@ function updateOrderStatusDisplay() {
             paymentBadge = '<span class="payment-status-badge payment-paid">✅ Paid</span>';
         }
 
+        // Show cancel reason if cancelled
+        let cancelInfo = '';
+        if (order.status === 'cancelled' && order.cancelReason) {
+            cancelInfo = `<div style="background: #f8d7da; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.9rem; color: #721c24;">
+                <strong>❌ Cancelled</strong><br>
+                <span style="font-size: 0.85rem;">Reason: ${order.cancelReason}</span>
+            </div>`;
+        }
+
         return `
             <div style="background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 20px; padding: 20px; margin-bottom: 15px;">
                 <div style="font-weight: bold; font-size: 1.2rem; margin-bottom: 10px; color: #BA8E4A;">
@@ -543,6 +899,8 @@ function updateOrderStatusDisplay() {
                     </div>
                     ${paymentBadge}
                 </div>
+                
+                ${cancelInfo}
                 
                 <div style="text-align: left;">
                     ${itemsList}
@@ -639,7 +997,9 @@ window.openPaymentModal = function () {
     document.getElementById('paymentTotal').value = `₱${total.toFixed(2)}`;
     document.getElementById('paymentModal').classList.add('active');
 
+    // Reset to defaults
     selectPaymentMethod('cash');
+    selectOrderType('dine-in');
 };
 
 window.closePaymentModal = function () {
@@ -688,31 +1048,11 @@ async function createGCashPayment(orderData) {
         await savePendingGCashOrder(orderData, sourceId);
         closePaymentModal();
 
-        const width = 500;
-        const height = 700;
-        const left = (screen.width - width) / 2;
-        const top = (screen.height - height) / 2;
-
-        const popup = window.open(
-            checkoutUrl,
-            'GCash Payment',
-            `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=yes,menubar=no,scrollbars=yes,resizable=yes,status=yes`
-        );
-
-        if (popup) {
-            showNotification('Complete your payment in the popup window', 'info');
-
-            const checkPopup = setInterval(() => {
-                if (popup.closed) {
-                    clearInterval(checkPopup);
-                    showNotification('Checking payment status...', 'info');
-                    setTimeout(() => location.reload(), 1000);
-                }
-            }, 500);
-        } else {
-            alert('Please allow pop-ups for this site to complete payment');
+        // Simply redirect to GCash checkout
+        showNotification('Redirecting to GCash...', 'info');
+        setTimeout(() => {
             window.location.href = checkoutUrl;
-        }
+        }, 1000);
 
         return null;
 
@@ -727,11 +1067,16 @@ async function savePendingGCashOrder(orderData, sourceId) {
     const order = {
         tableNumber: orderData.tableNumber,
         referenceNumber: orderData.referenceNumber,
-        items: orderData.items,
+        items: orderData.items.map(item => ({
+            ...item,
+            isCafe: item.isCafe || false,
+            size: item.size || null
+        })),
         totalAmount: orderData.totalAmount,
         paymentMethod: 'gcash',
         paymentSourceId: sourceId,
         paymentStatus: 'pending',
+        orderType: selectedOrderType,
         status: 'pending_payment',
         timestamp: Timestamp.now(),
         queuePosition: await getNextQueuePosition()
@@ -749,101 +1094,143 @@ async function savePendingGCashOrder(orderData, sourceId) {
 // ============================================
 // CHECK GCASH PAYMENT STATUS ON PAGE LOAD
 // ============================================
+
+// ============================================
+// CHECK GCASH PAYMENT STATUS ON PAGE LOAD
+// ============================================
 async function checkGCashPaymentStatus() {
     const urlParams = new URLSearchParams(window.location.search);
     const paymentStatus = urlParams.get('payment');
     const orderRef = urlParams.get('order');
 
-    if (paymentStatus && orderRef) {
-        const pending = sessionStorage.getItem('pendingGCashOrder');
+    if (!paymentStatus) return;
 
-        if (pending) {
-            const pendingOrder = JSON.parse(pending);
+    const pendingOrderStr = sessionStorage.getItem('pendingGCashOrder');
+    if (!pendingOrderStr) return;
 
-            if (paymentStatus === 'success') {
-                try {
-                    showNotification('Verifying payment...', 'info');
+    const pendingOrder = JSON.parse(pendingOrderStr);
 
-                    const response = await fetch(`https://api.paymongo.com/v1/sources/${pendingOrder.sourceId}`, {
-                        headers: {
-                            'Authorization': 'Basic ' + btoa(PAYMONGO_PUBLIC_KEY + ':')
-                        }
+    if (paymentStatus === 'success' && orderRef === pendingOrder.referenceNumber) {
+        try {
+            const response = await fetch(`https://api.paymongo.com/v1/sources/${pendingOrder.sourceId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Basic ' + btoa(PAYMONGO_PUBLIC_KEY + ':')
+                }
+            });
+
+            const data = await response.json();
+            const status = data.data.attributes.status;
+
+            if (status === 'chargeable' || status === 'paid') {
+                const ordersQuery = query(
+                    collection(db, 'orders'),
+                    where('referenceNumber', '==', pendingOrder.referenceNumber)
+                );
+                const ordersSnapshot = await getDocs(ordersQuery);
+
+                if (!ordersSnapshot.empty) {
+                    const orderDoc = ordersSnapshot.docs[0];
+                    const orderDocRef = doc(db, 'orders', orderDoc.id);
+                    const orderData = orderDoc.data();
+
+                    await updateDoc(orderDocRef, {
+                        paymentStatus: 'paid',
+                        status: 'pending',
+                        paidAt: Timestamp.now()
                     });
 
-                    const data = await response.json();
-                    const status = data.data.attributes.status;
+                    // Handle both regular and cafe items
+                    for (const item of orderData.items) {
+                        const collectionName = item.isCafe ? 'cafe_inventory' : 'inventory';
+                        const inventoryRef = doc(db, collectionName, item.inventoryId);
+                        const inventoryDoc = await getDoc(inventoryRef);
 
-                    if (status === 'chargeable' || status === 'paid') {
-                        const ordersQuery = query(
-                            collection(db, 'orders'),
-                            where('referenceNumber', '==', pendingOrder.referenceNumber)
-                        );
-                        const ordersSnapshot = await getDocs(ordersQuery);
-
-                        if (!ordersSnapshot.empty) {
-                            const orderDoc = ordersSnapshot.docs[0];
-                            const orderDocRef = doc(db, 'orders', orderDoc.id);
-                            const orderData = orderDoc.data();
-
-                            await updateDoc(orderDocRef, {
-                                paymentStatus: 'paid',
-                                status: 'pending',
-                                paidAt: Timestamp.now()
+                        if (inventoryDoc.exists()) {
+                            const currentStock = inventoryDoc.data().stock;
+                            const newStock = currentStock - item.quantity;
+                            await updateDoc(inventoryRef, {
+                                stock: newStock,
+                                status: newStock > 0 ? 'available' : 'unavailable'
                             });
-
-                            for (const item of orderData.items) {
-                                const inventoryRef = doc(db, 'inventory', item.inventoryId);
-                                const inventoryDoc = await getDoc(inventoryRef);
-
-                                if (inventoryDoc.exists()) {
-                                    const currentStock = inventoryDoc.data().stock;
-                                    const newStock = currentStock - item.quantity;
-                                    await updateDoc(inventoryRef, {
-                                        stock: newStock,
-                                        status: newStock > 0 ? 'available' : 'unavailable'
-                                    });
-                                }
-                            }
-
-                            const updatedOrder = { id: orderDoc.id, ...orderData, paymentStatus: 'paid', status: 'pending' };
-                            activeOrders.push(updatedOrder);
-                            saveActiveOrders();
-                            listenToOrder(orderDoc.id);
-                            updateOrderStatusDisplay();
-
-                            showNotification('✅ GCash payment successful! Order #' + pendingOrder.referenceNumber, 'success');
                         }
-                    } else {
-                        showNotification('❌ Payment verification failed. Please contact staff.', 'error');
                     }
-                } catch (error) {
-                    console.error('Payment verification error:', error);
-                    showNotification('Error verifying payment', 'error');
+
+                    const updatedOrder = { id: orderDoc.id, ...orderData, paymentStatus: 'paid', status: 'pending' };
+                    activeOrders.push(updatedOrder);
+                    saveActiveOrders();
+                    listenToOrder(orderDoc.id);
+                    updateOrderStatusDisplay();
+
+                    showNotification('✅ GCash payment successful! Order #' + pendingOrder.referenceNumber, 'success');
+                    
+                    sessionStorage.removeItem('pendingGCashOrder');
+                    window.history.replaceState({}, document.title, window.location.pathname + '?table=' + tableNumber);
+                    sessionStorage.setItem('switchToOrdersTab', 'true');
                 }
-
+            } else if (status === 'failed' || status === 'expired') {
+                showNotification('❌ GCash payment failed or expired', 'error');
                 sessionStorage.removeItem('pendingGCashOrder');
-            } else if (paymentStatus === 'failed') {
-                try {
-                    const ordersQuery = query(
-                        collection(db, 'orders'),
-                        where('referenceNumber', '==', pendingOrder.referenceNumber)
-                    );
-                    const ordersSnapshot = await getDocs(ordersQuery);
-
-                    if (!ordersSnapshot.empty) {
-                        const orderDoc = ordersSnapshot.docs[0];
-                        await deleteDoc(doc(db, 'orders', orderDoc.id));
-                    }
-                } catch (error) {
-                    console.error('Error deleting cancelled order:', error);
-                }
-
-                sessionStorage.removeItem('pendingGCashOrder');
-                showNotification('❌ GCash payment cancelled', 'error');
+                window.history.replaceState({}, document.title, window.location.pathname + '?table=' + tableNumber);
             }
 
-            window.history.replaceState({}, document.title, window.location.pathname + '?table=' + tableNumber);
+        } catch (error) {
+            console.error('Error verifying GCash payment:', error);
+            showNotification('Error verifying payment status', 'error');
         }
+
+    } else if (paymentStatus === 'failed') {
+        showNotification('❌ GCash payment was cancelled or failed', 'error');
+        sessionStorage.removeItem('pendingGCashOrder');
+        window.history.replaceState({}, document.title, window.location.pathname + '?table=' + tableNumber);
+    }
+}
+// Find this section in checkGCashPaymentStatus and update the stock deduction part:
+
+if (status === 'chargeable' || status === 'paid') {
+    const ordersQuery = query(
+        collection(db, 'orders'),
+        where('referenceNumber', '==', pendingOrder.referenceNumber)
+    );
+    const ordersSnapshot = await getDocs(ordersQuery);
+
+    if (!ordersSnapshot.empty) {
+        const orderDoc = ordersSnapshot.docs[0];
+        const orderDocRef = doc(db, 'orders', orderDoc.id);
+        const orderData = orderDoc.data();
+
+        await updateDoc(orderDocRef, {
+            paymentStatus: 'paid',
+            status: 'pending',
+            paidAt: Timestamp.now()
+        });
+
+        // UPDATE THIS PART - Handle both regular and cafe items
+        for (const item of orderData.items) {
+            const collectionName = item.isCafe ? 'cafe_inventory' : 'inventory';
+            const inventoryRef = doc(db, collectionName, item.inventoryId);
+            const inventoryDoc = await getDoc(inventoryRef);
+
+            if (inventoryDoc.exists()) {
+                const currentStock = inventoryDoc.data().stock;
+                const newStock = currentStock - item.quantity;
+                await updateDoc(inventoryRef, {
+                    stock: newStock,
+                    status: newStock > 0 ? 'available' : 'unavailable'
+                });
+            }
+        }
+
+        const updatedOrder = { id: orderDoc.id, ...orderData, paymentStatus: 'paid', status: 'pending' };
+        activeOrders.push(updatedOrder);
+        saveActiveOrders();
+        listenToOrder(orderDoc.id);
+        updateOrderStatusDisplay();
+
+        showNotification('✅ GCash payment successful! Order #' + pendingOrder.referenceNumber, 'success');
+        
+        window.history.replaceState({}, document.title, window.location.pathname + '?table=' + tableNumber);
+        sessionStorage.setItem('switchToOrdersTab', 'true');
     }
 }
 
@@ -872,7 +1259,9 @@ window.processOrder = async function () {
                 price: item.price,
                 quantity: item.quantity,
                 total: item.price * item.quantity,
-                inventoryId: item.id
+                inventoryId: item.id,
+                isCafe: item.isCafe || false,
+                size: item.size || null
             }))
         };
 
@@ -881,14 +1270,23 @@ window.processOrder = async function () {
 };
 
 // ============================================
-// CREATE ORDER (UPDATED)
+// CREATE ORDER
 // ============================================
 async function createOrder(paymentData) {
+    // Validate stock for both regular and cafe items
     for (const cartItem of cart) {
-        const menuItem = menuItems.find(m => m.id === cartItem.id);
-        if (!menuItem || menuItem.stock < cartItem.quantity) {
-            showNotification(`Not enough stock for ${cartItem.name}`, 'error');
-            return;
+        if (cartItem.isCafe) {
+            const cafeItem = cafeItems.find(c => c.id === cartItem.id);
+            if (!cafeItem || cafeItem.stock < cartItem.quantity) {
+                showNotification(`Not enough stock for ${cartItem.name}`, 'error');
+                return;
+            }
+        } else {
+            const menuItem = menuItems.find(m => m.id === cartItem.id);
+            if (!menuItem || menuItem.stock < cartItem.quantity) {
+                showNotification(`Not enough stock for ${cartItem.name}`, 'error');
+                return;
+            }
         }
     }
 
@@ -903,13 +1301,16 @@ async function createOrder(paymentData) {
             price: item.price,
             quantity: item.quantity,
             total: item.price * item.quantity,
-            inventoryId: item.id
+            inventoryId: item.id,
+            isCafe: item.isCafe || false,
+            size: item.size || null
         })),
         totalAmount: total,
         paymentMethod: paymentData.paymentMethod,
         paymentStatus: paymentData.paymentStatus || 'completed',
         amountPaid: paymentData.amountPaid,
         change: paymentData.change,
+        orderType: selectedOrderType,
         status: 'pending',
         timestamp: Timestamp.now(),
         queuePosition: await getNextQueuePosition()
@@ -918,9 +1319,11 @@ async function createOrder(paymentData) {
     const docRef = await addDoc(collection(db, 'orders'), order);
     const newOrder = { id: docRef.id, ...order };
 
+    // Update stock for both regular and cafe items
     if (paymentData.paymentMethod === 'cash') {
         for (const item of order.items) {
-            const inventoryRef = doc(db, 'inventory', item.inventoryId);
+            const collectionName = item.isCafe ? 'cafe_inventory' : 'inventory';
+            const inventoryRef = doc(db, collectionName, item.inventoryId);
             const inventoryDoc = await getDoc(inventoryRef);
 
             if (inventoryDoc.exists()) {
@@ -943,11 +1346,11 @@ async function createOrder(paymentData) {
     closePaymentModal();
     updateOrderStatusDisplay();
 
-    if (paymentData.paymentMethod === 'cash') {
-        showNotification('Order placed successfully! Please pay at the counter.', 'success');
-    } else {
-        showNotification('Order placed successfully!', 'success');
-    }
+    showNotification('Order placed successfully!', 'success');
+    
+    setTimeout(() => {
+        switchTab('orders');
+    }, 1500);
 }
 
 // ============================================

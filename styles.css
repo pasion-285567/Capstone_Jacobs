@@ -996,3 +996,27 @@ body {
         gap: 5px;
     }
 }
+
+.order-type-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: 2px solid #e0e0e0;
+    background: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.order-type-btn.active {
+    background: linear-gradient(135deg, #BA8E4A, #d4a562);
+    color: white;
+    border-color: #BA8E4A;
+}
+
+.order-type-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+

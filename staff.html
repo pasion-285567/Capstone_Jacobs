@@ -11,115 +11,260 @@
 </head>
 
 <body>
-    <!-- Login Container -->
-    <div class="login-container" id="loginContainer">
-        <div class="login-card">
-            <div class="login-header">
-                <h1>Staff Login</h1>
-                <p>Jacob's Café & Resto</p>
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+
+
+        <div class="dashboard-content">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-logo">
+                    <img src="logo.png" alt="Jacob's Logo" id="sidebarLogo">
+                </div>
+                <div class="sidebar-divider"></div>
+                <ul class="sidebar-menu">
+                    <li><a href="#" class="menu-link active" data-section="orders">Orders</a></li>
+                    <li><a href="#" class="menu-link" data-section="inventory">Inventory</a></li>
+                    <li><a href="#" class="menu-link" data-section="notifications">Notifications</a></li>
+                </ul>
+                <div class="sidebar-user" onclick="document.getElementById('userMenu').classList.toggle('active')">
+                    <span class="user-role">Staff</span>
+                    <div class="user-menu" id="userMenu">
+                        <button class="logout-btn" onclick="logout()">Logout</button>
+                    </div>
+                </div>
             </div>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="staffId">Staff ID</label>
-                    <input type="text" id="staffId" placeholder="Enter your staff ID" required>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Orders Section (existing kitchen) -->
+                <div class="content-section active" id="orders">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                        <!-- Orders Management Section -->
+                        <div class="orders-section">
+                            <div class="section-header">
+                                <h2 class="section-title">Active Orders</h2>
+                            </div>
+
+                            <!-- Status Filter -->
+                            <div class="status-filter">
+                                <button class="filter-btn active" data-status="all">
+                                    All Orders <span class="filter-count" id="countAll">0</span>
+                                </button>
+                                <button class="filter-btn" data-status="pending">
+                                    Pending <span class="filter-count" id="countPending">0</span>
+                                </button>
+                                <button class="filter-btn" data-status="preparing">
+                                    Preparing <span class="filter-count" id="countPreparing">0</span>
+                                </button>
+                                <button class="filter-btn" data-status="ready">
+                                    Ready <span class="filter-count" id="countReady">0</span>
+                                </button>
+                                <button class="filter-btn" data-status="completed">
+                                    Completed <span class="filter-count" id="countCompleted">0</span>
+                                </button>
+                                <button class="filter-btn" data-status="cancelled">
+                                    Cancelled <span class="filter-count" id="countCancelled">0</span>
+                                </button>
+                            </div>
+
+                            <!-- Date Filter -->
+                            <div class="date-filter" id="dateFilter"
+                                style="display: none; margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                                    <label style="font-weight: 600; color: #333;">Filter by Date:</label>
+                                    <select id="dateFilterType"
+                                        style="padding: 8px 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 0.9rem;">
+                                        <option value="all">All Time</option>
+                                        <option value="today">Today</option>
+                                        <option value="week">This Week</option>
+                                        <option value="month">This Month</option>
+                                        <option value="custom">Custom Date</option>
+                                    </select>
+                                    <input type="date" id="customDate"
+                                        style="padding: 8px 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 0.9rem; display: none;">
+                                </div>
+                            </div>
+
+                            <!-- Orders Container -->
+                            <div class="orders-container" id="ordersContainer">
+                                <div class="empty-state">
+                                    <div class="empty-icon">📝</div>
+                                    <div class="empty-message">No orders at the moment</div>
+                                    <div class="empty-description">New orders will appear here automatically</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats and Kitchen Display Section -->
+                        <div class="stats-section">
+                            <!-- Order Statistics -->
+                            <div class="stats-card">
+                                <h3 style="margin-bottom: 20px; color: #333;">Order Statistics</h3>
+                                <div class="stats-grid">
+                                    <div class="stat-item">
+                                        <div class="stat-number" id="totalOrdersToday">0</div>
+                                        <div class="stat-label">Total Today</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-number" id="pendingCount">0</div>
+                                        <div class="stat-label">Pending</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-number" id="preparingCount">0</div>
+                                        <div class="stat-label">Preparing</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-number" id="readyCount">0</div>
+                                        <div class="stat-label">Ready</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Kitchen Preparation Queue -->
+                            <div class="kitchen-display">
+                                <h3 style="margin-bottom: 20px; color: #333;">Preparation Queue</h3>
+                                <div class="prep-queue" id="prepQueue">
+                                    <div class="empty-state">
+                                        <div class="empty-icon">👨‍🍳</div>
+                                        <div class="empty-message">No pending orders!</div>
+                                        <div class="empty-description">All orders are up to date</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Enter your password" required>
+
+                <!-- Inventory Section -->
+                <div class="content-section" id="inventory">
+                    <div class="section-header">
+                        <h2 class="section-title">Inventory (View Only)</h2>
+                    </div>
+                    <p style="color: #666; margin-bottom: 20px;">View current stock levels. Click "Send Low Stock Alert"
+                        to notify admin.</p>
+
+                    <!-- Main Tabs: Meals vs Cafe -->
+                    <div class="tabs-container" style="border-bottom: 3px solid #BA8E4A;">
+                        <button class="tab-btn active" onclick="switchStaffInventoryType('meals')"
+                            id="staffInventoryTypeMeals">
+                            🍽️ Meals Inventory
+                        </button>
+                        <button class="tab-btn" onclick="switchStaffInventoryType('cafe')" id="staffInventoryTypeCafe">
+                            ☕ Cafe Inventory
+                        </button>
+                    </div>
+
+                    <!-- Meals Inventory Tab -->
+                    <div id="staffMealsInventorySection" class="staff-inventory-type-section active">
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Image</th>
+                                        <th onclick="sortStaffInventory('name')" style="cursor: pointer;">Name</th>
+                                        <th onclick="sortStaffInventory('category')" style="cursor: pointer;">Category
+                                        </th>
+                                        <th onclick="sortStaffInventory('stock')" style="cursor: pointer;">Stock</th>
+                                        <th onclick="sortStaffInventory('price')" style="cursor: pointer;">Price</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staffInventoryTableBody">
+                                    <tr>
+                                        <td colspan="6" style="text-align: center; padding: 40px;">
+                                            <div class="loading"></div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Cafe Inventory Tab -->
+                    <div id="staffCafeInventorySection" class="staff-inventory-type-section">
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Image</th>
+                                        <th onclick="sortStaffCafeInventory('name')" style="cursor: pointer;">Name</th>
+                                        <th onclick="sortStaffCafeInventory('category')" style="cursor: pointer;">
+                                            Category</th>
+                                        <th onclick="sortStaffCafeInventory('stock')" style="cursor: pointer;">Stock
+                                        </th>
+                                        <th>Prices</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staffCafeInventoryTableBody">
+                                    <tr>
+                                        <td colspan="6" style="text-align: center; padding: 40px;">
+                                            <div class="loading"></div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <button type="submit" class="login-btn">Login to Kitchen</button>
-                <div class="error-message" id="errorMessage"></div>
-            </form>
+
+                <!-- Notifications Section -->
+                <div class="content-section" id="notifications">
+                    <div class="section-header">
+                        <h2 class="section-title">Notifications</h2>
+                    </div>
+                    <div id="staffNotificationsContainer">
+                        <div class="empty-state">
+                            <div class="empty-icon">🔔</div>
+                            <div class="empty-message">No notifications yet</div>
+                            <div class="empty-description">Stock updates from admin will appear here</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Dashboard -->
-    <div class="dashboard" id="dashboard">
-        <!-- Header -->
-        <div class="dashboard-header">
-            <div class="dashboard-title">
-                <h1>Jacob's Staff</h1>
-            </div>
-            <div class="header-actions">
-                <!--   <button class="sound-toggle enabled" id="soundToggle">
-                    Sound On
-                </button>-->
-                <button class="logout-btn" onclick="logout()">Logout</button>
-            </div>
-        </div>
+    <!-- Cancel Order Modal -->
+    <div class="cancel-modal" id="cancelModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
+        <div class="cancel-modal-content"
+            style="background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <span class="close-btn" onclick="closeCancelModal()"
+                style="float: right; font-size: 28px; font-weight: bold; cursor: pointer; color: #999;">&times;</span>
+            <h2 style="margin-bottom: 20px; color: #333;">Cancel Order</h2>
+            <p style="margin-bottom: 20px; color: #666;">Select reason(s) for cancellation:</p>
 
-        <div class="dashboard-content">
-            <!-- Orders Management Section -->
-            <div class="orders-section">
-                <div class="section-header">
-                    <h2 class="section-title">Active Orders</h2>
-                </div>
-
-                <!-- Status Filter -->
-                <div class="status-filter">
-                    <button class="filter-btn active" data-status="all">
-                        All Orders <span class="filter-count" id="countAll">0</span>
-                    </button>
-                    <button class="filter-btn" data-status="pending">
-                        Pending <span class="filter-count" id="countPending">0</span>
-                    </button>
-                    <button class="filter-btn" data-status="preparing">
-                        Preparing <span class="filter-count" id="countPreparing">0</span>
-                    </button>
-                    <button class="filter-btn" data-status="ready">
-                        Ready <span class="filter-count" id="countReady">0</span>
-                    </button>
-                    <button class="filter-btn" data-status="completed">
-                        Completed <span class="filter-count" id="countCompleted">0</span>
-                    </button>
-                </div>
-
-                <!-- Orders Container -->
-                <div class="orders-container" id="ordersContainer">
-                    <div class="empty-state">
-                        <div class="empty-icon">📝</div>
-                        <div class="empty-message">No orders at the moment</div>
-                        <div class="empty-description">New orders will appear here automatically</div>
-                    </div>
-                </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 12px; cursor: pointer;">
+                    <input type="checkbox" value="Out of Stock" style="margin-right: 10px; transform: scale(1.2);">
+                    <span style="font-size: 1rem;">📦 Out of Stock</span>
+                </label>
+                <label style="display: block; margin-bottom: 12px; cursor: pointer;">
+                    <input type="checkbox" value="Customer Request" style="margin-right: 10px; transform: scale(1.2);">
+                    <span style="font-size: 1rem;">🚫 Customer Request</span>
+                </label>
+                <label style="display: block; margin-bottom: 12px; cursor: pointer;">
+                    <input type="checkbox" value="Duplicate Order" style="margin-right: 10px; transform: scale(1.2);">
+                    <span style="font-size: 1rem;">🔄 Duplicate Order</span>
+                </label>
+                <label style="display: block; margin-bottom: 12px; cursor: pointer;">
+                    <input type="checkbox" id="otherCheckbox" style="margin-right: 10px; transform: scale(1.2);">
+                    <span style="font-size: 1rem;">💬 Other</span>
+                </label>
             </div>
 
-            <!-- Stats and Kitchen Display Section -->
-            <div class="stats-section">
-                <!-- Order Statistics -->
-                <div class="stats-card">
-                    <h3 style="margin-bottom: 20px; color: #333;">Order Statistics</h3>
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <div class="stat-number" id="totalOrdersToday">0</div>
-                            <div class="stat-label">Total Today</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number" id="pendingCount">0</div>
-                            <div class="stat-label">Pending</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number" id="preparingCount">0</div>
-                            <div class="stat-label">Preparing</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number" id="readyCount">0</div>
-                            <div class="stat-label">Ready</div>
-                        </div>
-                    </div>
-                </div>
+            <textarea id="otherReasonText" placeholder="Please specify other reason..."
+                style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; resize: vertical; font-family: inherit; display: none; margin-bottom: 20px;"
+                rows="3"></textarea>
 
-                <!-- Kitchen Preparation Queue -->
-                <div class="kitchen-display">
-                    <h3 style="margin-bottom: 20px; color: #333;">Preparation Queue</h3>
-                    <div class="prep-queue" id="prepQueue">
-                        <div class="empty-state">
-                            <div class="empty-icon">👨‍🍳</div>
-                            <div class="empty-message">No pending orders!</div>
-                            <div class="empty-description">All orders are up to date</div>
-                        </div>
-                    </div>
-                </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="confirmCancelOrder()"
+                    style="flex: 1; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem;">Confirm
+                    Cancellation</button>
+                <button onclick="closeCancelModal()"
+                    style="flex: 1; padding: 12px; background: #6c757d; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem;">Cancel</button>
             </div>
         </div>
     </div>

@@ -23,8 +23,8 @@
             <button class="tab-btn active" onclick="switchTab('all-meals')" id="tab-all-meals">
                 🍽️ All Meals
             </button>
-            <button class="tab-btn" onclick="switchTab('categories')" id="tab-categories">
-                📂 Categories
+            <button class="tab-btn" onclick="switchTab('cafe-menu')" id="tab-cafe-menu">
+                ☕ Cafe Menu
             </button>
             <button class="tab-btn" onclick="switchTab('cart')" id="tab-cart">
                 🛒 My Cart <span class="cart-badge" id="cartBadge">0</span>
@@ -41,21 +41,43 @@
                 <div class="search-container">
                     <input type="text" id="searchInput" placeholder="🔍 Search menu items...">
                 </div>
+
+                <!-- Category Dropdown -->
+                <div class="filter-bar" style="margin-bottom: 15px;">
+                    <label style="font-weight: bold; margin-right: 10px;">Category:</label>
+                    <select id="mealsCategoryFilter" onchange="filterMealsByCategory(this.value)"
+                        style="padding: 10px 15px; border: 2px solid #e0e0e0; border-radius: 50px; font-size: 0.95rem; min-width: 150px;">
+                        <option value="all-meals">All Meals</option>
+                    </select>
+                </div>
+
                 <h3 class="section-title" id="menuSectionTitle">All Meals</h3>
                 <div class="menu-grid" id="menuGrid">
                     <div class="loading"></div>
                 </div>
             </div>
 
-            <!-- Tab 2: Categories -->
-            <div class="tab-pane" id="pane-categories">
-                <h3 class="section-title">Categories</h3>
-                <div class="categories-grid" id="categoriesGrid">
+            <!-- Tab 2: Cafe Menu -->
+            <div class="tab-pane" id="pane-cafe-menu">
+                <div class="search-container">
+                    <input type="text" id="cafeSearchInput" placeholder="🔍 Search cafe items...">
+                </div>
+
+                <!-- Cafe Category Filter -->
+                <div class="filter-bar" style="margin-bottom: 15px;">
+                    <label style="font-weight: bold; margin-right: 10px;">Category:</label>
+                    <select id="cafeCategoryFilter" onchange="filterCafeByCategory(this.value)"
+                        style="padding: 10px 15px; border: 2px solid #2E3094; border-radius: 50px; font-size: 0.95rem; min-width: 150px; color: #2E3094; font-weight: bold;">
+                        <option value="all">All Cafe Items</option>
+                    </select>
+                </div>
+
+                <div id="cafeMenuContainer">
                     <div class="loading"></div>
                 </div>
             </div>
 
-            <!-- Tab 3: Cart -->
+            <!-- Tab 3: Cart (unchanged) -->
             <div class="tab-pane" id="pane-cart">
                 <h3 class="section-title">Your Cart</h3>
                 <div class="cart-items" id="cartItems">
@@ -69,7 +91,7 @@
                 </div>
             </div>
 
-            <!-- Tab 4: Order Status -->
+            <!-- Tab 4: Orders (unchanged) -->
             <div class="tab-pane" id="pane-orders">
                 <h3 class="section-title">My Orders</h3>
                 <div class="order-status-container" id="orderStatus">
@@ -79,112 +101,125 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Payment Modal -->
-    <div class="payment-modal" id="paymentModal">
-        <div class="payment-content">
-            <span class="close-btn" onclick="closePaymentModal()">×</span>
-            <h2 style="text-align: center; margin-bottom: 20px; color: #BA8E4A;">Payment</h2>
+        <div class="payment-modal" id="paymentModal">
+            <div class="payment-content">
+                <span class="close-btn" onclick="closePaymentModal()">×</span>
+                <h2 style="text-align: center; margin-bottom: 20px; color: #BA8E4A;">Payment</h2>
 
-            <!-- Payment Method Selection -->
-            <div class="payment-method-selection">
-                <label style="font-weight: bold; margin-bottom: 10px; display: block;">Select Payment Method:</label>
-                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <button class="payment-method-btn active" onclick="selectPaymentMethod('cash')" id="cashBtn">
-                        💵 Cash
-                    </button>
-                    <button class="payment-method-btn" onclick="selectPaymentMethod('gcash')" id="gcashBtn">
-                        💙 GCash
-                    </button>
-                </div>
-            </div>
-
-            <div class="payment-form">
-                <div class="form-group">
-                    <label>Total Amount:</label>
-                    <input type="text" id="paymentTotal" readonly
-                        style="background: #f8f9fa; padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 100%; font-size: 1.1rem; font-weight: bold;">
-                </div>
-
-                <!-- Cash Payment Message -->
-                <div id="cashPaymentFields">
-                    <div
-                        style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 10px; text-align: center; margin-top: 15px;">
-                        <div style="font-size: 2rem; margin-bottom: 10px;">🏪</div>
-                        <h3 style="color: #0c5460; margin-bottom: 10px;">Pay Over the Counter</h3>
-                        <p style="color: #0c5460; font-size: 0.95rem;">
-                            Please proceed to the counter to pay for your order.
-                        </p>
+                <!-- Order Type Selection - ADD THIS FIRST -->
+                <div class="order-type-selection" style="margin-bottom: 25px;">
+                    <label style="font-weight: bold; margin-bottom: 10px; display: block;">Order Type:</label>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="payment-method-btn active" onclick="selectOrderType('dine-in')" id="dineInBtn">
+                            🍽️ Dine-In
+                        </button>
+                        <button class="payment-method-btn" onclick="selectOrderType('take-out')" id="takeOutBtn">
+                            📦 Take-Out
+                        </button>
                     </div>
                 </div>
 
-                <!-- GCash Payment Fields -->
-                <div id="gcashPaymentFields" style="display: none;">
-                    <div
-                        style="background: #e7f3ff; border: 1px solid #b3d9ff; padding: 20px; border-radius: 10px; text-align: center; margin-top: 15px;">
-                        <div style="font-size: 2rem; margin-bottom: 10px;">💙</div>
-                        <h3 style="color: #004085; margin-bottom: 10px;">GCash Payment</h3>
-                        <p style="color: #004085; font-size: 0.95rem; margin-bottom: 15px;">
-                            You'll be redirected to GCash to complete your payment.
-                        </p>
+                <!-- Payment Method Selection -->
+                <div class="payment-method-selection">
+                    <label style="font-weight: bold; margin-bottom: 10px; display: block;">Select Payment
+                        Method:</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <button class="payment-method-btn active" onclick="selectPaymentMethod('cash')" id="cashBtn">
+                            💵 Cash
+                        </button>
+                        <button class="payment-method-btn" onclick="selectPaymentMethod('gcash')" id="gcashBtn">
+                            💙 GCash
+                        </button>
+                    </div>
+                </div>
+
+                <div class="payment-form">
+                    <div class="form-group">
+                        <label>Total Amount:</label>
+                        <input type="text" id="paymentTotal" readonly
+                            style="background: #f8f9fa; padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 100%; font-size: 1.1rem; font-weight: bold;">
+                    </div>
+
+                    <!-- Cash Payment Message -->
+                    <div id="cashPaymentFields">
                         <div
-                            style="background: #fff3cd; padding: 10px; border-radius: 5px; font-size: 0.85rem; color: #856404;">
-                            <strong>🧪 Test Mode Active</strong><br>
-                            Use test GCash number for testing
+                            style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 10px; text-align: center; margin-top: 15px;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">🏪</div>
+                            <h3 style="color: #0c5460; margin-bottom: 10px;">Pay Over the Counter</h3>
+                            <p style="color: #0c5460; font-size: 0.95rem;">
+                                Please proceed to the counter to pay for your order.
+                            </p>
                         </div>
                     </div>
-                </div>
 
-                <button class="checkout-btn" onclick="processOrder()" id="processOrderBtn"
-                    style="width: 100%; padding: 15px; background: #BA8E4A; color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 20px;">
-                    Confirm Order
-                </button>
+                    <!-- GCash Payment Fields -->
+                    <div id="gcashPaymentFields" style="display: none;">
+                        <div
+                            style="background: #e7f3ff; border: 1px solid #b3d9ff; padding: 20px; border-radius: 10px; text-align: center; margin-top: 15px;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">💙</div>
+                            <h3 style="color: #004085; margin-bottom: 10px;">GCash Payment</h3>
+                            <p style="color: #004085; font-size: 0.95rem; margin-bottom: 15px;">
+                                You'll be redirected to GCash to complete your payment.
+                            </p>
+                            <div
+                                style="background: #fff3cd; padding: 10px; border-radius: 5px; font-size: 0.85rem; color: #856404;">
+                                <strong>🧪 Test Mode Active</strong><br>
+                                Use test GCash number for testing
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="checkout-btn" onclick="processOrder()" id="processOrderBtn"
+                        style="width: 100%; padding: 15px; background: #BA8E4A; color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 20px;">
+                        Confirm Order
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Feedback Button -->
-    <button class="feedback-btn" onclick="openFeedbackModal()">
-        ⭐ Feedback
-    </button>
+        <!-- Feedback Button -->
+        <button class="feedback-btn" onclick="openFeedbackModal()">
+            ⭐ Feedback
+        </button>
 
-    <!-- Feedback Modal -->
-    <div class="feedback-modal" id="feedbackModal">
-        <div class="feedback-content">
-            <span class="close-btn" onclick="closeFeedbackModal()">×</span>
-            <h2 style="text-align: center; margin-bottom: 20px; color: #BA8E4A;">Rate Your Experience</h2>
+        <!-- Feedback Modal -->
+        <div class="feedback-modal" id="feedbackModal">
+            <div class="feedback-content">
+                <span class="close-btn" onclick="closeFeedbackModal()">×</span>
+                <h2 style="text-align: center; margin-bottom: 20px; color: #BA8E4A;">Rate Your Experience</h2>
 
-            <div class="feedback-form">
-                <div style="text-align: center; margin-bottom: 25px;">
-                    <div style="font-weight: bold; margin-bottom: 15px; font-size: 1.1rem;">How was your experience?
+                <div class="feedback-form">
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <div style="font-weight: bold; margin-bottom: 15px; font-size: 1.1rem;">How was your experience?
+                        </div>
+                        <div class="star-rating" id="starRating">
+                            <span class="star" data-rating="1">⭐</span>
+                            <span class="star" data-rating="2">⭐</span>
+                            <span class="star" data-rating="3">⭐</span>
+                            <span class="star" data-rating="4">⭐</span>
+                            <span class="star" data-rating="5">⭐</span>
+                        </div>
+                        <div id="ratingText"
+                            style="margin-top: 10px; font-size: 0.9rem; color: #666; min-height: 20px;">
+                        </div>
                     </div>
-                    <div class="star-rating" id="starRating">
-                        <span class="star" data-rating="1">⭐</span>
-                        <span class="star" data-rating="2">⭐</span>
-                        <span class="star" data-rating="3">⭐</span>
-                        <span class="star" data-rating="4">⭐</span>
-                        <span class="star" data-rating="5">⭐</span>
+
+                    <div class="form-group">
+                        <label>Comments (Optional):</label>
+                        <textarea id="feedbackComment" placeholder="Tell us about your experience..." rows="4"
+                            style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 10px; resize: vertical; font-family: inherit;"></textarea>
                     </div>
-                    <div id="ratingText" style="margin-top: 10px; font-size: 0.9rem; color: #666; min-height: 20px;">
-                    </div>
+
+                    <button class="submit-feedback-btn" onclick="submitFeedback()"
+                        style="width: 100%; padding: 15px; background: linear-gradient(135deg, #BA8E4A, #d4a562); color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 15px;">
+                        Submit Feedback
+                    </button>
                 </div>
-
-                <div class="form-group">
-                    <label>Comments (Optional):</label>
-                    <textarea id="feedbackComment" placeholder="Tell us about your experience..." rows="4"
-                        style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 10px; resize: vertical; font-family: inherit;"></textarea>
-                </div>
-
-                <button class="submit-feedback-btn" onclick="submitFeedback()"
-                    style="width: 100%; padding: 15px; background: linear-gradient(135deg, #BA8E4A, #d4a562); color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 15px;">
-                    Submit Feedback
-                </button>
             </div>
         </div>
-    </div>
 
-    <script type="module" src="scripts.js"></script>
+        <script type="module" src="scripts.js"></script>
 </body>
 
 </html>

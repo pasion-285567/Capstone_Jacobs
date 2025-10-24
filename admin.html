@@ -9,52 +9,31 @@
 </head>
 
 <body>
-    <!-- Login Container -->
-    <div class="login-container" id="loginContainer">
-        <div class="login-card">
-            <div class="login-header">
-                <h1>Admin Login</h1>
-                <p>Jacob's Café & Resto Management System</p>
-            </div>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" placeholder="Enter your email" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Enter your password" required>
-                </div>
-                <button type="submit" class="login-btn">Login to Dashboard</button>
-                <div class="error-message" id="errorMessage"></div>
-            </form>
-        </div>
-    </div>
-
     <!-- Dashboard -->
     <div class="dashboard" id="dashboard">
-        <!-- Header -->
-        <div class="dashboard-header">
-            <div class="dashboard-title">
-                <h1>Jacob's Admin</h1>
-            </div>
-            <div class="header-actions">
-                <button class="logout-btn" onclick="logout()">Logout</button>
-            </div>
-        </div>
-
         <div class="dashboard-content">
             <!-- Sidebar -->
             <div class="sidebar">
+                <div class="sidebar-logo">
+                    <img src="logo.png" alt="Jacob's Logo" id="sidebarLogo">
+                </div>
+                <div class="sidebar-divider"></div>
                 <ul class="sidebar-menu">
                     <li><a href="#" class="menu-link active" data-section="overview">Overview</a></li>
                     <li><a href="#" class="menu-link" data-section="inventory">Inventory</a></li>
                     <li><a href="#" class="menu-link" data-section="menu-items">Menu Items</a></li>
                     <li><a href="#" class="menu-link" data-section="categories">Categories</a></li>
                     <li><a href="#" class="menu-link" data-section="tables">Tables</a></li>
+                    <li><a href="#" class="menu-link" data-section="admin-notifications">Notifications</a></li>
                     <li><a href="#" class="menu-link" data-section="feedbacks">Customer Feedbacks</a></li>
                     <li><a href="#" class="menu-link" data-section="reports">Reports</a></li>
                 </ul>
+                <div class="sidebar-user" onclick="document.getElementById('userMenu').classList.toggle('active')">
+                    <span class="user-role">Admin</span>
+                    <div class="user-menu" id="userMenu">
+                        <button class="logout-btn" onclick="logout()">Logout</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Main Content -->
@@ -67,19 +46,19 @@
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-number" id="totalMenuItems">0</div>
-                            <div class="stat-label">Menu Items</div>
+                            <div class="stat-label">Available Menu Items</div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-number" id="totalOrders">0</div>
-                            <div class="stat-label">Total Orders</div>
-                        </div>
-                        <div class="stat-card">
+                        <div class="stat-card" style="background: linear-gradient(135deg, #ffc107, #BA8E4A);">
                             <div class="stat-number" id="pendingOrders">0</div>
                             <div class="stat-label">Pending Orders</div>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card" style="background: linear-gradient(135deg, #28a745, #20c997);">
                             <div class="stat-number" id="todayRevenue">₱0</div>
                             <div class="stat-label">Today's Revenue</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #6f42c1, #e83e8c);">
+                            <div class="stat-number" id="popularItem">-</div>
+                            <div class="stat-label">Most Popular Item</div>
                         </div>
                     </div>
                     <div
@@ -97,67 +76,259 @@
                 <div class="content-section" id="inventory">
                     <div class="section-header">
                         <h2 class="section-title">Inventory Management</h2>
-                        <button class="btn-primary" onclick="openInventoryModal()">+ Add Inventory Item</button>
                     </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Image</th>
-                                <th>Name</th>
-                                <th>Category</th>
-                                <th>Stock</th>
-                                <th>Price</th>
-                                <th>Menu Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventoryTableBody">
-                            <tr>
-                                <td colspan="7" style="text-align: center; padding: 40px;">
-                                    <div class="loading"></div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                    <!-- Main Tabs: Meals vs Cafe -->
+                    <div class="tabs-container" style="border-bottom: 3px solid #BA8E4A;">
+                        <button class="tab-btn active" onclick="switchInventoryType('meals')" id="inventoryTypeMeals">
+                            🍽️ Meals Inventory
+                        </button>
+                        <button class="tab-btn" onclick="switchInventoryType('cafe')" id="inventoryTypeCafe">
+                            ☕ Cafe Inventory
+                        </button>
+                    </div>
+
+                    <!-- Meals Inventory Tab -->
+                    <div id="mealsInventorySection" class="inventory-type-section active">
+                        <div class="section-header" style="border: none; margin-top: 20px;">
+                            <button class="btn-primary" onclick="openInventoryModal()">+ Add Meals Item</button>
+                        </div>
+
+                        <!-- Sub-tabs: Active/Archived -->
+                        <div class="tabs-container">
+                            <button class="tab-btn active" onclick="switchInventoryTab('active')">Inventory</button>
+                            <button class="tab-btn" onclick="switchInventoryTab('archived')">Archives</button>
+                        </div>
+
+                        <!-- Active Inventory -->
+                        <div id="activeInventoryTab" class="tab-content active">
+                            <div class="table-wrapper">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Image</th>
+                                            <th onclick="sortInventory('name')" style="cursor: pointer;">Name</th>
+                                            <th onclick="sortInventory('category')" style="cursor: pointer;">Category
+                                            </th>
+                                            <th onclick="sortInventory('stock')" style="cursor: pointer;">Stock</th>
+                                            <th onclick="sortInventory('price')" style="cursor: pointer;">Price</th>
+                                            <th onclick="sortInventory('menu')" style="cursor: pointer;">Menu Status
+                                            </th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="inventoryTableBody">
+                                        <tr>
+                                            <td colspan="7" style="text-align: center; padding: 40px;">
+                                                <div class="loading"></div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Archived Inventory -->
+                        <div id="archivedInventoryTab" class="tab-content">
+                            <div class="table-wrapper">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Image</th>
+                                            <th>Name</th>
+                                            <th>Category</th>
+                                            <th>Last Stock</th>
+                                            <th>Price</th>
+                                            <th>Archived Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="archivedTableBody">
+                                        <tr>
+                                            <td colspan="7" style="text-align: center; padding: 40px;">
+                                                <div class="loading"></div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cafe Inventory Tab -->
+                    <div id="cafeInventorySection" class="inventory-type-section">
+                        <div class="section-header" style="border: none; margin-top: 20px;">
+                            <button class="btn-primary" onclick="openCafeInventoryModal()">+ Add Cafe Item</button>
+                        </div>
+
+                        <!-- Sub-tabs: Active/Archived -->
+                        <div class="tabs-container">
+                            <button class="tab-btn active" onclick="switchCafeInventoryTab('active')">Cafe
+                                Inventory</button>
+                            <button class="tab-btn" onclick="switchCafeInventoryTab('archived')">Archives</button>
+                        </div>
+
+                        <div id="activeCafeInventoryTab" class="tab-content active">
+                            <div class="table-wrapper">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Image</th>
+                                            <th onclick="sortCafeInventory('name')" style="cursor: pointer;">Name</th>
+                                            <th onclick="sortCafeInventory('category')" style="cursor: pointer;">
+                                                Category</th>
+                                            <th onclick="sortCafeInventory('stock')" style="cursor: pointer;">Stock</th>
+                                            <th>Prices</th>
+                                            <th onclick="sortCafeInventory('menu')" style="cursor: pointer;">Menu Status
+                                            </th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cafeInventoryTableBody">
+                                        <tr>
+                                            <td colspan="7" style="text-align: center; padding: 40px;">
+                                                <div class="loading"></div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="archivedCafeInventoryTab" class="tab-content">
+                            <div class="table-wrapper">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Image</th>
+                                            <th>Name</th>
+                                            <th>Category</th>
+                                            <th>Last Stock</th>
+                                            <th>Prices</th>
+                                            <th>Archived Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="archivedCafeTableBody">
+                                        <tr>
+                                            <td colspan="7" style="text-align: center; padding: 40px;">
+                                                <div class="loading"></div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Menu Items Section -->
                 <div class="content-section" id="menu-items">
                     <div class="section-header">
                         <h2 class="section-title">Menu Items Management</h2>
-                        <p style="color: #666; font-size: 0.9rem; margin-top: 5px;">
+                    </div>
+
+                    <!-- Main Tabs: Meals vs Cafe -->
+                    <div class="tabs-container" style="border-bottom: 3px solid #BA8E4A;">
+                        <button class="tab-btn active" onclick="switchMenuType('meals')" id="menuTypeMeals">
+                            🍽️ Meals Menu
+                        </button>
+                        <button class="tab-btn" onclick="switchMenuType('cafe')" id="menuTypeCafe">
+                            ☕ Cafe Menu
+                        </button>
+                    </div>
+
+                    <!-- Meals Menu Tab -->
+                    <div id="mealsMenuSection" class="menu-type-section active">
+                        <p style="color: #666; font-size: 0.9rem; margin: 15px 0;">
                             Menu items are managed through Inventory. Enable "Show in Menu" for items to appear here.
                         </p>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Image</th>
+                                        <th onclick="sortMenu('name')" style="cursor: pointer;">Name</th>
+                                        <th onclick="sortMenu('category')" style="cursor: pointer;">Category</th>
+                                        <th onclick="sortMenu('price')" style="cursor: pointer;">Price</th>
+                                        <th onclick="sortMenu('status')" style="cursor: pointer;">Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="menuTableBody">
+                                    <tr>
+                                        <td colspan="6" style="text-align: center; padding: 40px;">
+                                            <div class="loading"></div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Image</th>
-                                <th>Name</th>
-                                <th>Category</th>
-                                <th>Price</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="menuTableBody">
-                            <tr>
-                                <td colspan="6" style="text-align: center; padding: 40px;">
-                                    <div class="loading"></div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
 
+                    <!-- Cafe Menu Tab -->
+                    <div id="cafeMenuSection" class="menu-type-section">
+                        <p style="color: #666; font-size: 0.9rem; margin: 15px 0;">
+                            Cafe menu items are managed through Cafe Inventory. Enable "Show in Menu" for items to
+                            appear here.
+                        </p>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Image</th>
+                                        <th onclick="sortCafeMenu('name')" style="cursor: pointer;">Name</th>
+                                        <th onclick="sortCafeMenu('category')" style="cursor: pointer;">Category</th>
+                                        <th>Prices</th>
+                                        <th onclick="sortCafeMenu('status')" style="cursor: pointer;">Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cafeMenuTableBody">
+                                    <tr>
+                                        <td colspan="6" style="text-align: center; padding: 40px;">
+                                            <div class="loading"></div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
                 <!-- Categories Section -->
                 <div class="content-section" id="categories">
                     <div class="section-header">
                         <h2 class="section-title">Categories Management</h2>
-                        <button class="btn-primary" onclick="openCategoryModal()">+ Add Category</button>
                     </div>
-                    <div class="categories-grid" id="categoriesGrid">
-                        <div class="loading" style="margin: 40px auto; display: block;"></div>
+
+                    <!-- Main Tabs: Meals vs Cafe -->
+                    <div class="tabs-container" style="border-bottom: 3px solid #BA8E4A;">
+                        <button class="tab-btn active" onclick="switchCategoryType('meals')" id="categoryTypeMeals">
+                            🍽️ Meals Categories
+                        </button>
+                        <button class="tab-btn" onclick="switchCategoryType('cafe')" id="categoryTypeCafe">
+                            ☕ Cafe Categories
+                        </button>
+                    </div>
+
+                    <!-- Meals Categories Tab -->
+                    <div id="mealsCategoriesSection" class="category-type-section active">
+                        <div class="section-header" style="border: none; margin-top: 20px;">
+                            <button class="btn-primary" onclick="openCategoryModal()">+ Add Meals Category</button>
+                        </div>
+                        <div class="categories-grid" id="categoriesGrid">
+                            <div class="loading" style="margin: 40px auto; display: block;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Cafe Categories Tab -->
+                    <div id="cafeCategoriesSection" class="category-type-section">
+                        <div class="section-header" style="border: none; margin-top: 20px;">
+                            <button class="btn-primary" onclick="openCafeCategoryModal()">+ Add Cafe Category</button>
+                        </div>
+                        <div class="categories-grid" id="cafeCategoriesGrid">
+                            <div class="loading" style="margin: 40px auto; display: block;"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -166,21 +337,131 @@
                     <div class="section-header">
                         <h2 class="section-title">Reports & Analytics</h2>
                     </div>
-                    <div class="stats-grid">
-                        <div class="stat-card" style="background: linear-gradient(135deg, #17a2b8, #20c997);">
-                            <div class="stat-number" id="weeklySales">₱0</div>
-                            <div class="stat-label">Weekly Sales</div>
+
+                    <!-- Reports Tabs -->
+                    <div class="tabs-container">
+                        <button class="tab-btn active" onclick="switchReportsTab('analytics')">Reports &
+                            Analytics</button>
+                        <button class="tab-btn" onclick="switchReportsTab('sales')">Sales Today</button>
+                        <button class="tab-btn" onclick="switchReportsTab('transactions')">Transaction History</button>
+                    </div>
+
+                    <!-- Analytics Tab -->
+                    <div id="analyticsTab" class="tab-content active">
+                        <!-- Date Range Filter -->
+                        <div class="filter-bar">
+                            <label>Time Range:</label>
+                            <select id="analyticsRange" onchange="updateAnalytics()">
+                                <option value="7">Last 7 Days</option>
+                                <option value="14">Last 14 Days</option>
+                                <option value="30">Last 30 Days</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                            <div id="customDateRange" style="display: none; gap: 10px;">
+                                <input type="date" id="startDate">
+                                <input type="date" id="endDate">
+                                <button class="btn-primary" onclick="updateAnalytics()">Apply</button>
+                            </div>
                         </div>
-                        <div class="stat-card" style="background: linear-gradient(135deg, #fd7e14, #ffc107);">
-                            <div class="stat-number" id="monthlySales">₱0</div>
-                            <div class="stat-label">Monthly Sales</div>
+
+                        <!-- Sales Charts -->
+                        <div class="charts-grid">
+                            <div class="chart-card">
+                                <h3>Daily Sales</h3>
+                                <canvas id="dailySalesChart"></canvas>
+                            </div>
+                            <div class="chart-card">
+                                <h3>Weekly Sales</h3>
+                                <canvas id="weeklySalesChart"></canvas>
+                            </div>
+                            <div class="chart-card">
+                                <h3>Monthly Sales</h3>
+                                <canvas id="monthlySalesChart"></canvas>
+                            </div>
                         </div>
-                        <div class="stat-card" style="background: linear-gradient(135deg, #6f42c1, #e83e8c);">
-                            <div class="stat-number" id="popularItem">-</div>
-                            <div class="stat-label">Most Popular Item</div>
+
+                        <!-- Summary Stats -->
+                        <div class="stats-grid" style="margin-top: 30px;">
+                            <div class="stat-card" style="background: linear-gradient(135deg, #17a2b8, #20c997);">
+                                <div class="stat-number" id="totalSales">₱0</div>
+                                <div class="stat-label">Total Sales</div>
+                            </div>
+                            <div class="stat-card" style="background: linear-gradient(135deg, #BA8E4A, #ffc107);">
+                                <div class="stat-number" id="avgOrderValue">₱0</div>
+                                <div class="stat-label">Avg Order Value</div>
+                            </div>
+                            <div class="stat-card" style="background: linear-gradient(135deg, #6f42c1, #e83e8c);">
+                                <div class="stat-number" id="totalTransactions">0</div>
+                                <div class="stat-label">Total Transactions</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sales Today Tab -->
+                    <div id="salesTodayTab" class="tab-content">
+                        <div class="filter-bar">
+                            <label>Date:</label>
+                            <input type="date" id="salesDate" onchange="updateSalesToday()">
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Item Name</th>
+                                        <th>Category</th>
+                                        <th>Quantity Sold</th>
+                                        <th>Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="salesTodayBody">
+                                    <tr>
+                                        <td colspan="5" style="text-align: center; padding: 40px;">
+                                            <div class="loading"></div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Transaction History Tab -->
+                    <div id="transactionsTab" class="tab-content">
+                        <div class="filter-bar">
+                            <label>Date:</label>
+                            <input type="date" id="transactionDate" onchange="updateTransactions()">
+                            <label>Status:</label>
+                            <select id="transactionStatus" onchange="updateTransactions()">
+                                <option value="all">All</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Table</th>
+                                        <th>Items</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionsBody">
+                                    <tr>
+                                        <td colspan="6" style="text-align: center; padding: 40px;">
+                                            <div class="loading"></div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
+
                 <!-- Tables Section -->
                 <div class="content-section" id="tables">
                     <div class="section-header">
@@ -207,12 +488,26 @@
                         <div class="loading" style="margin: 40px auto; display: block;"></div>
                     </div>
                 </div>
+
+                <!-- Admin Notifications Section -->
+                <div class="content-section" id="admin-notifications">
+                    <div class="section-header">
+                        <h2 class="section-title">Staff Notifications</h2>
+                        <button class="btn-primary" onclick="markAllAsRead()">Mark All as Read</button>
+                    </div>
+                    <div id="adminNotificationsContainer">
+                        <div class="empty-state">
+                            <div class="empty-icon">🔔</div>
+                            <div class="empty-message">No notifications</div>
+                            <div class="empty-description">Low stock alerts from staff will appear here</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Category Modal -->
-    <!-- Category Modal -->
+    <!-- Modals (Category, Inventory, Table, QR) remain the same -->
     <div class="modal" id="categoryModal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeCategoryModal()">×</span>
@@ -234,7 +529,81 @@
         </div>
     </div>
 
-    <!-- Inventory Modal -->
+    <!-- Cafe Category Modal -->
+    <div class="modal" id="cafeCategoryModal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeCafeCategoryModal()">×</span>
+            <h2 id="cafeCategoryModalTitle">Add Cafe Category</h2>
+            <form id="cafeCategoryForm">
+                <div class="form-group">
+                    <label for="cafeCategoryName">Category Name *</label>
+                    <input type="text" id="cafeCategoryName" placeholder="Enter category name" required>
+                </div>
+                <div class="form-group">
+                    <label>Sizes (optional)</label>
+                    <div id="sizesContainer">
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 10px;">
+                            Add sizes if this category needs different sizes (e.g., Small, Medium, Large)
+                        </p>
+                    </div>
+                    <button type="button" class="btn-primary" onclick="addSizeField()"
+                        style="background: #28a745; margin-top: 10px;">+ Add Size</button>
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Save Category</button>
+                    <button type="button" class="btn-primary" onclick="closeCafeCategoryModal()"
+                        style="background: #6c757d; flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cafe Inventory Modal -->
+    <div class="modal" id="cafeInventoryModal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeCafeInventoryModal()">×</span>
+            <h2 id="cafeInventoryModalTitle">Add Cafe Item</h2>
+            <form id="cafeInventoryForm">
+                <div class="form-group">
+                    <label for="cafeItemName">Item Name *</label>
+                    <input type="text" id="cafeItemName" placeholder="Enter item name" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cafeItemCategory">Category *</label>
+                        <select id="cafeItemCategory" required onchange="loadCategorySizes()">
+                            <option value="">Select category</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cafeItemStock">Initial Stock *</label>
+                        <input type="number" id="cafeItemStock" placeholder="0" min="0" required>
+                    </div>
+                </div>
+                <div id="cafePricesContainer">
+                    <!-- Prices will be dynamically loaded based on category -->
+                </div>
+                <div class="form-group">
+                    <label for="cafeItemImageFile">Image *</label>
+                    <input type="file" id="cafeItemImageFile" accept="image/*" required>
+                    <img id="cafeItemImagePreview" src="" alt=""
+                        style="display:none;max-width:200px;margin-top:10px;border-radius:8px;">
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="cafeItemShowInMenu">
+                        <span>Show in Customer Menu</span>
+                    </label>
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Save Item</button>
+                    <button type="button" class="btn-primary" onclick="closeCafeInventoryModal()"
+                        style="background: #6c757d; flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="modal" id="inventoryModal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeInventoryModal()">×</span>
@@ -249,20 +618,6 @@
                         <label for="inventoryCategory">Category *</label>
                         <select id="inventoryCategory" required>
                             <option value="">Select category</option>
-                            <option value="meal-w-rice">Meal w/ Rice</option>
-                            <option value="sizzling">Sizzling</option>
-                            <option value="breaded-fillet">Breaded Fillet</option>
-                            <option value="silog">Silog</option>
-                            <option value="ala-carte">Ala Carte</option>
-                            <option value="sinigang">Sinigang</option>
-                            <option value="nilaga">Nilaga</option>
-                            <option value="veggies">Veggies</option>
-                            <option value="soup">Soup</option>
-                            <option value="for-sharing">For Sharing</option>
-                            <option value="pasta">Pasta</option>
-                            <option value="appetizers">Appetizers</option>
-                            <option value="drinks">Drinks</option>
-                            <option value="extra">Extra</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -295,7 +650,6 @@
         </div>
     </div>
 
-    <!-- Table Modal -->
     <div class="modal" id="tableModal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeTableModal()">×</span>
@@ -322,7 +676,6 @@
         </div>
     </div>
 
-    <!-- QR Code Modal -->
     <div class="modal" id="qrModal">
         <div class="modal-content" style="max-width: 400px; text-align: center;">
             <span class="modal-close" onclick="closeQRModal()">×</span>
@@ -335,9 +688,9 @@
         </div>
     </div>
 
-    <!-- Firebase Configuration and JavaScript -->
     <script type="module" src="admin.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 
 </html>
