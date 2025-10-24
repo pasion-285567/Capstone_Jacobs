@@ -21,16 +21,16 @@
         <!-- Tab Navigation -->
         <div class="tab-navigation">
             <button class="tab-btn active" onclick="switchTab('all-meals')" id="tab-all-meals">
-                🍽️ All Meals
+                All Meals
             </button>
             <button class="tab-btn" onclick="switchTab('cafe-menu')" id="tab-cafe-menu">
-                ☕ Cafe Menu
+                Cafe Menu
             </button>
             <button class="tab-btn" onclick="switchTab('cart')" id="tab-cart">
-                🛒 My Cart <span class="cart-badge" id="cartBadge">0</span>
+                My Cart <span class="cart-badge" id="cartBadge">0</span>
             </button>
             <button class="tab-btn" onclick="switchTab('orders')" id="tab-orders">
-                📋 Orders
+                Orders
             </button>
         </div>
 
@@ -112,10 +112,10 @@
                     <label style="font-weight: bold; margin-bottom: 10px; display: block;">Order Type:</label>
                     <div style="display: flex; gap: 10px;">
                         <button class="payment-method-btn active" onclick="selectOrderType('dine-in')" id="dineInBtn">
-                            🍽️ Dine-In
+                            Dine-In
                         </button>
                         <button class="payment-method-btn" onclick="selectOrderType('take-out')" id="takeOutBtn">
-                            📦 Take-Out
+                            Take-Out
                         </button>
                     </div>
                 </div>
@@ -126,10 +126,10 @@
                         Method:</label>
                     <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                         <button class="payment-method-btn active" onclick="selectPaymentMethod('cash')" id="cashBtn">
-                            💵 Cash
+                            Cash
                         </button>
                         <button class="payment-method-btn" onclick="selectPaymentMethod('gcash')" id="gcashBtn">
-                            💙 GCash
+                            e-Wallet/GCash
                         </button>
                     </div>
                 </div>
@@ -145,7 +145,6 @@
                     <div id="cashPaymentFields">
                         <div
                             style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 10px; text-align: center; margin-top: 15px;">
-                            <div style="font-size: 2rem; margin-bottom: 10px;">🏪</div>
                             <h3 style="color: #0c5460; margin-bottom: 10px;">Pay Over the Counter</h3>
                             <p style="color: #0c5460; font-size: 0.95rem;">
                                 Please proceed to the counter to pay for your order.
@@ -157,16 +156,10 @@
                     <div id="gcashPaymentFields" style="display: none;">
                         <div
                             style="background: #e7f3ff; border: 1px solid #b3d9ff; padding: 20px; border-radius: 10px; text-align: center; margin-top: 15px;">
-                            <div style="font-size: 2rem; margin-bottom: 10px;">💙</div>
                             <h3 style="color: #004085; margin-bottom: 10px;">GCash Payment</h3>
-                            <p style="color: #004085; font-size: 0.95rem; margin-bottom: 15px;">
+                            <p style="color: #004085; font-size: 0.95rem; margin-bottom: 10px;">
                                 You'll be redirected to GCash to complete your payment.
                             </p>
-                            <div
-                                style="background: #fff3cd; padding: 10px; border-radius: 5px; font-size: 0.85rem; color: #856404;">
-                                <strong>🧪 Test Mode Active</strong><br>
-                                Use test GCash number for testing
-                            </div>
                         </div>
                     </div>
 
